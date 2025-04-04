@@ -1,7 +1,6 @@
-// app/layout.jsx
-import ClientLayout from './ClientLayout';
-import Footer from '../components/Footer';
-import { UserProvider } from './UserContext';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'RECOVGLOX Platform',
@@ -34,24 +33,13 @@ export default function RootLayout({ children }) {
         `}</style>
       </head>
       <body
-        className="bg-darkBg text-white font-roboto"
+        className={`${inter.className} bg-darkBg text-white`}
         style={{
           margin: 0,
           overflowX: 'hidden',
         }}
       >
-        <div
-          className="fixed inset-0 z-[-1]"
-          style={{
-            backgroundSize: '200% 200%',
-            animation: 'gradientAnimation 15s ease infinite',
-            backgroundImage: 'linear-gradient(to bottom right, #0a0a0a, rgba(107, 33, 168, 0.2), #0a0a0a)',
-          }}
-        />
-        <UserProvider>
-          <ClientLayout>{children}</ClientLayout>
-        </UserProvider>
-        <Footer />
+        {children}
       </body>
     </html>
   );

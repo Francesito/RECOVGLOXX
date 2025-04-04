@@ -2,6 +2,5 @@
 
 .env
 .env.local
-firebase.js
 serviceAccountKey.json
 node_modules/
