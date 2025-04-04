@@ -5,7 +5,7 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
 import Image from 'next/image';
-import { API_BASE_URL } from '../services/config'; // Importa la URL base desde config.js
+import { API_BASE_URL } from '../src/config'; // Importa la URL base desde config.js
 import '../styles/globalStyles.css';
 
 // Configuración del patrón de fondo de Highcharts
