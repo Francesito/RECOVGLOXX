@@ -2,7 +2,7 @@
 require('dotenv').config(); // Carga las variables de entorno desde .env
 const express = require('express');
 const cors = require('cors');
-const { db, auth } = require('./firebase'); // Importa db y auth desde firebase.js
+const { db, auth } = require('./config/firebase.js'); // Importa db y auth desde firebase.js
 
 const app = express();
 app.use(express.json());
