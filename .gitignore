@@ -1,0 +1,7 @@
+# archivos que no se subiran a mi github
+
+.env
+.env.local
+firebase.js
+serviceAccountKey.json
+node_modules/
