@@ -5,6 +5,7 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
 import Image from 'next/image';
+import { API_BASE_URL } from '../services/config'; // Importa la URL base desde config.js
 import '../styles/globalStyles.css';
 
 // Configuración del patrón de fondo de Highcharts
@@ -278,7 +279,7 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`http://localhost:3001/api/patients/${physioId}`);
+      const response = await fetch(`${API_BASE_URL}/api/patients/${physioId}`);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -321,7 +322,7 @@ export default function Home() {
   const fetchNotifications = useCallback(async (physioId) => {
     console.log('fetchNotifications - Physio ID:', physioId);
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${physioId}`);
+      const response = await fetch(`${API_BASE_URL}/api/notifications/${physioId}`);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -364,7 +365,7 @@ export default function Home() {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/add-patient', {
+      const response = await fetch(`${API_BASE_URL}/api/add-patient`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -407,7 +408,7 @@ export default function Home() {
       const physioId = user.uid;
       const patientEmail = selectedPatient.id;
 
-      const response = await fetch('http://localhost:3001/api/add-observation', {
+      const response = await fetch(`${API_BASE_URL}/api/add-observation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -461,7 +462,7 @@ export default function Home() {
         token = userData.token; // Asegúrate de que el backend devuelva un token al iniciar sesión
       }
 
-      const response = await fetch(`http://localhost:3001/api/progress/${patient.userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/progress/${patient.userId}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
@@ -614,7 +615,7 @@ export default function Home() {
         token = userData.token;
       }
 
-      const response = await fetch(`http://localhost:3001/api/progress/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/progress/${userId}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
@@ -681,7 +682,7 @@ export default function Home() {
         token = userData.token;
       }
 
-      const response = await fetch(`http://localhost:3001/api/observations/${email}`, {
+      const response = await fetch(`${API_BASE_URL}/api/observations/${email}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
@@ -715,7 +716,7 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -754,7 +755,7 @@ export default function Home() {
 
   const handleLogout = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/logout', {
+      const response = await fetch(`${API_BASE_URL}/api/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
