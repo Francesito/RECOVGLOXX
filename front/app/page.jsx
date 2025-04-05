@@ -5,7 +5,7 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
 import Image from 'next/image';
-import { API_BASE_URL } from '../src/config'; // Importa la URL base desde config.js
+import { API_BASE_URL } from '../src/config'; // Ya está importado correctamente
 import '../styles/globalStyles.css';
 
 // Configuración del patrón de fondo de Highcharts
@@ -279,7 +279,9 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/patients/${physioId}`);
+      const response = await fetch(`${API_BASE_URL}/api/patients/${physioId}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -292,7 +294,6 @@ export default function Home() {
       setPatients(updatedPatients);
       setTotalSessions(totalSessions);
 
-      // Solo seleccionamos un paciente si tiene userId y sesiones
       if (updatedPatients.length > 0 && !selectedPatient) {
         const firstPatientWithUserId = updatedPatients.find(p => p.userId && p.hasSessions);
         if (firstPatientWithUserId) {
@@ -322,7 +323,9 @@ export default function Home() {
   const fetchNotifications = useCallback(async (physioId) => {
     console.log('fetchNotifications - Physio ID:', physioId);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notifications/${physioId}`);
+      const response = await fetch(`${API_BASE_URL}/api/notifications/${physioId}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -340,7 +343,6 @@ export default function Home() {
     e.preventDefault();
     console.log('handleAddPatient - Form Data:', { patientName, patientEmail });
 
-    // Limpiar los valores y verificar si están vacíos
     const trimmedName = patientName ? patientName.trim() : '';
     const trimmedEmail = patientEmail ? patientEmail.trim().toLowerCase() : '';
 
@@ -454,19 +456,8 @@ export default function Home() {
         return;
       }
 
-      // Obtener el token del usuario desde localStorage
-      const storedUser = localStorage.getItem('user');
-      let token = null;
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        token = userData.token; // Asegúrate de que el backend devuelva un token al iniciar sesión
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/progress/${patient.userId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -508,7 +499,6 @@ export default function Home() {
     }
   }, [patients]);
 
-  // Agregar un useEffect para cargar el gráfico después de que selectedPatient cambie
   useEffect(() => {
     if (selectedPatient && selectedPatient.isRegistered && selectedPatient.hasSessions) {
       getDailyProgressChart(selectedPatient.email);
@@ -607,19 +597,8 @@ export default function Home() {
     console.log('fetchUserProgress - User ID:', userId);
     setLoading(true);
     try {
-      // Obtener el token del usuario desde localStorage
-      const storedUser = localStorage.getItem('user');
-      let token = null;
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        token = userData.token;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/progress/${userId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -674,19 +653,8 @@ export default function Home() {
   const fetchUserObservations = useCallback(async (email) => {
     console.log('fetchUserObservations - Email:', email);
     try {
-      // Obtener el token del usuario desde localStorage
-      const storedUser = localStorage.getItem('user');
-      let token = null;
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        token = userData.token;
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/observations/${email}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -776,7 +744,6 @@ export default function Home() {
     }
   }, [resetAllStates]);
 
-  // Ajuste del useEffect para restaurar el estado del usuario al recargar
   useEffect(() => {
     const checkAuthState = async () => {
       setLoading(true);
@@ -942,7 +909,6 @@ export default function Home() {
                             </div>
                             <button
                               onClick={() => {
-                                // Reiniciar estados antes de cambiar de paciente
                                 setChartOptions({
                                   ...initialChartOptions,
                                   subtitle: { text: 'Cargando datos...', style: { color: '#a0aec0', fontSize: '14px' } },
@@ -956,7 +922,6 @@ export default function Home() {
                                 setTotalSessions(0);
                                 setProgressPercentage(0.0);
                                 setSelectedPatient(patient);
-                                // Solo cargar datos si el paciente tiene sesiones y está registrado
                                 if (patient.isRegistered && patient.hasSessions) {
                                   getDailyProgressChart(patient.email);
                                 } else {
@@ -1108,6 +1073,9 @@ export default function Home() {
                 </div>
               </div>
             )}
+            <button onClick={handleLogout} className="button-primary mt-8 mx-auto block">
+              Cerrar Sesión
+            </button>
           </div>
         )}
       </main>

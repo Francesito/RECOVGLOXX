@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../UserContext';
 import Template from '../template';
+import { API_BASE_URL } from '../../src/config'; // Importamos la URL base
 
 export default function LoginPage() {
   const { setUser, isInitialized } = useUser();
@@ -25,11 +26,11 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/login`, { // Usamos API_BASE_URL
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-        credentials: 'include'
+        credentials: 'include', // Mantener cookies si el backend usa sesiones
       });
 
       const data = await response.json();
@@ -40,6 +41,8 @@ export default function LoginPage() {
 
       const userData = data.user;
       setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData)); // Guardamos el usuario en localStorage
+      window.dispatchEvent(new Event('custom-storage-update')); // Disparamos evento personalizado
       router.push('/dashboard');
     } catch (err) {
       setError(err.message);
