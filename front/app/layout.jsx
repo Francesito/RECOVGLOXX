@@ -1,3 +1,4 @@
+// app/layout.jsx
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -30,16 +31,21 @@ export default function RootLayout({ children }) {
               background-position: 0% 50%;
             }
           }
+          /* Asegurar que el body no tenga márgenes ni desbordamiento */
+          body {
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+          }
+          main {
+            flex: 1;
+          }
         `}</style>
       </head>
-      <body
-        className={`${inter.className} bg-darkBg text-white`}
-        style={{
-          margin: 0,
-          overflowX: 'hidden',
-        }}
-      >
-        {children}
+      <body className={`${inter.className} bg-darkBg text-white`}>
+        <main>{children}</main>
       </body>
     </html>
   );

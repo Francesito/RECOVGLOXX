@@ -1,3 +1,4 @@
+// app/page.jsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -5,8 +6,10 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
 import Image from 'next/image';
-import { API_BASE_URL } from '../src/config'; // Ya está importado correctamente
+import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '../src/config';
 import '../styles/globalStyles.css';
+import Navbar from '../components/Navbar';
 
 // Configuración del patrón de fondo de Highcharts
 Highcharts.wrap(Highcharts.Chart.prototype, 'getContainer', function (proceed) {
@@ -31,11 +34,14 @@ Highcharts.wrap(Highcharts.Chart.prototype, 'getContainer', function (proceed) {
   return result;
 });
 
-// Estado inicial de chartOptions (gráfico vacío)
-const initialChartOptions = {
+// Función para detectar si es móvil
+const isMobile = () => (typeof window !== 'undefined' && window.innerWidth <= 768) || false;
+
+// Opciones para la gráfica combinada (desktop)
+const getChartOptions = (isMobile) => ({
   chart: {
-    type: 'line',
-    height: 550,
+    type: isMobile ? 'column' : 'line',
+    height: isMobile ? 300 : 550,
     backgroundColor: 'rgba(26, 32, 44, 0.95)',
     style: { fontFamily: 'Roboto, sans-serif' },
     borderRadius: 16,
@@ -48,7 +54,7 @@ const initialChartOptions = {
   xAxis: {
     categories: ['Índice', 'Meñique', 'Medio', 'Anular'],
     title: { text: 'Dedos', style: { color: '#e5e7eb', fontSize: '14px' } },
-    labels: { style: { color: '#e5e7eb', fontSize: '14px' } },
+    labels: { style: { color: '#e5e7eb', fontSize: '12px' } },
     lineColor: '#e5e7eb',
     tickColor: '#e5e7eb',
     margin: 20,
@@ -147,6 +153,11 @@ const initialChartOptions = {
       states: { hover: { lineWidth: 4 } },
       zones: [{ value: 0 }, { color: null }],
     },
+    column: {
+      borderWidth: 0,
+      groupPadding: 0.1,
+      pointPadding: 0.05,
+    },
     series: {
       dataLabels: {
         enabled: true,
@@ -184,7 +195,76 @@ const initialChartOptions = {
     itemMarginBottom: 5,
   },
   credits: { enabled: false },
-};
+});
+
+// Opciones para gráficas individuales (móviles)
+const getSingleChartOptions = (type, title, yAxisTitle, yAxisMax, yAxisInterval, color, unit) => ({
+  chart: {
+    type: 'column',
+    height: 250,
+    backgroundColor: 'rgba(26, 32, 44, 0.95)',
+    style: { fontFamily: 'Roboto, sans-serif' },
+    borderRadius: 16,
+    shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
+    backgroundPattern: true,
+    animation: { duration: 1500, easing: 'easeOutBounce' },
+  },
+  title: { text: title, style: { color: '#e5e7eb', fontSize: '18px', fontWeight: 'bold' } },
+  subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } },
+  xAxis: {
+    categories: ['Índice', 'Meñique', 'Medio', 'Anular'],
+    title: { text: 'Dedos', style: { color: '#e5e7eb', fontSize: '12px' } },
+    labels: { style: { color: '#e5e7eb', fontSize: '10px' } },
+    lineColor: '#e5e7eb',
+    tickColor: '#e5e7eb',
+    margin: 10,
+  },
+  yAxis: {
+    title: { text: yAxisTitle, style: { color: color, fontSize: '12px' } },
+    labels: {
+      style: { color: color, fontSize: '10px' },
+      formatter: function () {
+        return `${this.value}${unit}`;
+      },
+    },
+    min: 0,
+    max: yAxisMax,
+    tickInterval: yAxisInterval,
+    gridLineColor: 'rgba(229, 231, 235, 0.1)',
+  },
+  tooltip: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    style: { color: '#e5e7eb', fontSize: '12px' },
+    formatter: function () {
+      return `<b>${this.x}</b><br/><span style="color:${color}">${title}: ${this.y}${unit}</span>`;
+    },
+  },
+  plotOptions: {
+    column: {
+      borderWidth: 0,
+      groupPadding: 0.1,
+      pointPadding: 0.05,
+    },
+    series: {
+      dataLabels: {
+        enabled: true,
+        formatter: function () {
+          return `<span style="color:${color}">${this.y}${unit}</span>`;
+        },
+        style: { fontSize: '10px', textOutline: 'none' },
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        borderRadius: 4,
+        padding: 4,
+        shadow: true,
+      },
+    },
+  },
+  series: [
+    { name: title, data: [], color: { linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 }, stops: [[0, color], [1, color.replace('ff', 'cc')]] } },
+  ],
+  legend: { enabled: false },
+  credits: { enabled: false },
+});
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -200,7 +280,11 @@ export default function Home() {
   const [showAllPatients, setShowAllPatients] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [observaciones, setObservaciones] = useState('');
-  const [chartOptions, setChartOptions] = useState(initialChartOptions);
+  const [chartOptions, setChartOptions] = useState(getChartOptions(isMobile()));
+  const [angleChartOptions, setAngleChartOptions] = useState(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
+  const [forceChartOptions, setForceChartOptions] = useState(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
+  const [servoForceChartOptions, setServoForceChartOptions] = useState(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
+  const [velocityChartOptions, setVelocityChartOptions] = useState(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
   const [fingerData, setFingerData] = useState({
     Index: { angle: 0, force: 0, servoforce: 0, velocity: 0 },
     Ring: { angle: 0, force: 0, servoforce: 0, velocity: 0 },
@@ -211,6 +295,7 @@ export default function Home() {
   const [progressPercentage, setProgressPercentage] = useState(0.0);
   const [userObservaciones, setUserObservaciones] = useState('');
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const components = useMemo(
     () => [
@@ -229,6 +314,18 @@ export default function Home() {
   const [imageLoadStatus, setImageLoadStatus] = useState(
     components.map(() => ({ loaded: false, failed: false }))
   );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setChartOptions(getChartOptions(isMobile()));
+      setAngleChartOptions(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
+      setForceChartOptions(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
+      setServoForceChartOptions(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
+      setVelocityChartOptions(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleImageLoad = useCallback((index) => {
     setImageLoadStatus((prev) =>
@@ -260,7 +357,11 @@ export default function Home() {
     setShowAllPatients(false);
     setSelectedPatient(null);
     setObservaciones('');
-    setChartOptions(initialChartOptions);
+    setChartOptions(getChartOptions(isMobile()));
+    setAngleChartOptions(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
+    setForceChartOptions(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
+    setServoForceChartOptions(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
+    setVelocityChartOptions(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
     setFingerData({
       Index: { angle: 0, force: 0, servoforce: 0, velocity: 0 },
       Ring: { angle: 0, force: 0, servoforce: 0, velocity: 0 },
@@ -273,7 +374,6 @@ export default function Home() {
     setLoading(true);
   }, []);
 
-  // Funciones del Fisioterapeuta (physio_home.dart)
   const fetchPatients = useCallback(async (physioId) => {
     console.log('fetchPatients - Physio ID:', physioId);
     setLoading(true);
@@ -301,15 +401,19 @@ export default function Home() {
         } else {
           setSelectedPatient(null);
           setChartOptions({
-            ...initialChartOptions,
+            ...getChartOptions(isMobile()),
             subtitle: { text: 'No hay pacientes con datos registrados.', style: { color: '#ff4444', fontSize: '14px' } },
             series: [
-              { ...initialChartOptions.series[0], data: [] },
-              { ...initialChartOptions.series[1], data: [] },
-              { ...initialChartOptions.series[2], data: [] },
-              { ...initialChartOptions.series[3], data: [] },
+              { ...getChartOptions(isMobile()).series[0], data: [] },
+              { ...getChartOptions(isMobile()).series[1], data: [] },
+              { ...getChartOptions(isMobile()).series[2], data: [] },
+              { ...getChartOptions(isMobile()).series[3], data: [] },
             ],
           });
+          setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+          setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+          setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+          setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
         }
       }
       setLoading(false);
@@ -442,15 +546,19 @@ export default function Home() {
       const patient = patients.find(p => p.email === patientEmail);
       if (!patient || !patient.userId) {
         setChartOptions({
-          ...initialChartOptions,
+          ...getChartOptions(isMobile()),
           subtitle: { text: 'El paciente no está registrado o no tiene datos.', style: { color: '#ff4444', fontSize: '14px' } },
           series: [
-            { ...initialChartOptions.series[0], data: [] },
-            { ...initialChartOptions.series[1], data: [] },
-            { ...initialChartOptions.series[2], data: [] },
-            { ...initialChartOptions.series[3], data: [] },
+            { ...getChartOptions(isMobile()).series[0], data: [] },
+            { ...getChartOptions(isMobile()).series[1], data: [] },
+            { ...getChartOptions(isMobile()).series[2], data: [] },
+            { ...getChartOptions(isMobile()).series[3], data: [] },
           ],
         });
+        setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+        setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+        setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+        setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
         setTotalSessions(0);
         setProgressPercentage(0.0);
         return;
@@ -469,31 +577,59 @@ export default function Home() {
       const { categories, series, subtitle, sessionCount } = data.data;
 
       const newOptions = {
-        ...initialChartOptions,
+        ...getChartOptions(isMobile()),
         title: { text: 'Progreso Actual', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
         xAxis: { categories },
         series: series.map((serie, index) => ({
-          ...initialChartOptions.series[index],
+          ...getChartOptions(isMobile()).series[index],
           data: serie.data,
         })),
         subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '14px' } },
       };
 
       setChartOptions(newOptions);
+      setAngleChartOptions({
+        ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: series[0].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setForceChartOptions({
+        ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: series[1].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setServoForceChartOptions({
+        ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: series[2].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setVelocityChartOptions({
+        ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: series[3].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
       setTotalSessions(sessionCount || 0);
     } catch (err) {
       console.error('getDailyProgressChart - Error:', err.message);
       setError('Error al cargar gráfico de progreso: ' + err.message);
       setChartOptions({
-        ...initialChartOptions,
+        ...getChartOptions(isMobile()),
         subtitle: { text: 'Error al cargar los datos.', style: { color: 'red', fontSize: '14px' } },
         series: [
-          { ...initialChartOptions.series[0], data: [] },
-          { ...initialChartOptions.series[1], data: [] },
-          { ...initialChartOptions.series[2], data: [] },
-          { ...initialChartOptions.series[3], data: [] },
+          { ...getChartOptions(isMobile()).series[0], data: [] },
+          { ...getChartOptions(isMobile()).series[1], data: [] },
+          { ...getChartOptions(isMobile()).series[2], data: [] },
+          { ...getChartOptions(isMobile()).series[3], data: [] },
         ],
       });
+      setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+      setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+      setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+      setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
       setTotalSessions(0);
       setProgressPercentage(0.0);
     }
@@ -522,7 +658,7 @@ export default function Home() {
       doc.text('Informe de Progreso', 105, 30, { align: 'center' });
       doc.setFontSize(12);
       doc.setTextColor(150, 150, 150);
-      if (chartOptions.series[0].data.length > 0) {
+      if (chartOptions && chartOptions.series[0].data.length > 0) {
         doc.text(`Paciente: ${selectedPatient.nombre}`, 20, 50);
         doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 60);
         doc.setFillColor(45, 55, 72);
@@ -562,13 +698,12 @@ export default function Home() {
     }
   }, [selectedPatient, chartOptions]);
 
-  // Funciones del Usuario (user_home.dart)
   const calculateProgress = (fingerData) => {
     const goals = {
-      angle: 180, // grados
-      force: 30, // Newtons
-      servoforce: 18, // Newtons
-      velocity: 240, // grados por segundo
+      angle: 180,
+      force: 30,
+      servoforce: 18,
+      velocity: 240,
     };
 
     const fingers = ['Index', 'Ring', 'Middle', 'Little'];
@@ -623,10 +758,10 @@ export default function Home() {
       const progressPercentageLocal = calculateProgress(newFingerData);
 
       const newOptions = {
-        ...initialChartOptions,
+        ...getChartOptions(isMobile()),
         xAxis: { categories },
         series: series.map((serie, index) => ({
-          ...initialChartOptions.series[index],
+          ...getChartOptions(isMobile()).series[index],
           data: serie.data,
         })),
         subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '14px' } },
@@ -634,6 +769,30 @@ export default function Home() {
 
       setFingerData(newFingerData);
       setChartOptions(newOptions);
+      setAngleChartOptions({
+        ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: series[0].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setForceChartOptions({
+        ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: series[1].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setServoForceChartOptions({
+        ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: series[2].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
+      setVelocityChartOptions({
+        ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'),
+        xAxis: { categories },
+        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: series[3].data }],
+        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+      });
       setTotalSessions(sessionCount || 0);
       setProgressPercentage(progressPercentageLocal);
       setLoading(false);
@@ -641,9 +800,13 @@ export default function Home() {
       console.error('fetchUserProgress - Error:', err.message);
       setError('Error al cargar datos: ' + err.message);
       setChartOptions({
-        ...initialChartOptions,
+        ...getChartOptions(isMobile()),
         subtitle: { text: 'Aún no hay datos registrados.', style: { color: '#ff4444', fontSize: '14px' } },
       });
+      setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+      setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+      setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+      setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
       setTotalSessions(0);
       setProgressPercentage(0.0);
       setLoading(false);
@@ -684,6 +847,7 @@ export default function Home() {
     }
 
     try {
+      console.log('handleSubmit - Fetching:', `${API_BASE_URL}/api/login`);
       const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: {
@@ -692,9 +856,18 @@ export default function Home() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      console.log('handleSubmit - Response Status:', response.status);
 
-      if (!response.ok || !data.success) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('handleSubmit - Error Response:', errorText);
+        throw new Error(`Error ${response.status}: ${errorText || 'No se pudo conectar al servidor'}`);
+      }
+
+      const data = await response.json();
+      console.log('handleSubmit - Response Data:', data);
+
+      if (!data.success) {
         throw new Error(data.error || 'Error al iniciar sesión.');
       }
 
@@ -717,32 +890,9 @@ export default function Home() {
       }
     } catch (err) {
       console.error('handleSubmit - Error:', err.message);
-      setError(err.message || 'Ocurrió un error al iniciar sesión.');
+      setError(err.message || 'Ocurrió un error al iniciar sesión. Verifica tu conexión o intenta de nuevo.');
     }
   }, [email, password, fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Error al cerrar sesión.');
-      }
-
-      localStorage.removeItem('user');
-      resetAllStates();
-    } catch (err) {
-      console.error('handleLogout - Error:', err.message);
-      setError('Error al cerrar sesión: ' + err.message);
-    }
-  }, [resetAllStates]);
 
   useEffect(() => {
     const checkAuthState = async () => {
@@ -775,307 +925,361 @@ export default function Home() {
     }
   }, [user, components]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neonCyan"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col relative background-pattern">
-      <main className="flex-grow">
+      <Navbar
+        user={user}
+        setUser={setUser}
+        resetAllStates={resetAllStates}
+        fetchPatients={fetchPatients}
+        fetchNotifications={fetchNotifications}
+        fetchUserProgress={fetchUserProgress}
+        fetchUserObservations={fetchUserObservations}
+      />
+      <main className="flex-grow pt-20">
         {!user ? (
-          <div className="container mx-auto py-16 px-6 relative min-h-screen z-10 flex items-center justify-center">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-16 w-full max-w-6xl">
-              <div className="w-full md:w-1/2 flex flex-col items-center space-y-8">
-                <div className="relative w-full max-w-lg h-[300px] rounded-2xl overflow-hidden shadow-xl border border-gray-700">
-                  <video autoPlay loop muted className="absolute top-0 left-0 w-full h-full object-cover">
-                    <source src="./videos/BACKGROUND.mp4" type="video/mp4" />
-                    Tu navegador no soporta el elemento de video.
-                  </video>
-                </div>
-                <div className="text-center">
-                  <h1 className="text-5xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
-                  <p className="text-lg text-gray-300 max-w-xl mx-auto">
-                    Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso, mejora tu movilidad y recupera tu fuerza con tecnología de punta.
-                  </p>
-                </div>
+          <div className="container mx-auto py-8 px-4 sm:px-6 relative min-h-screen z-10 flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md">
+              <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden">
+                <video autoPlay loop muted className="w-full h-full object-cover mix-blend-multiply bg-transparent">
+                  <source src="./videos/BACKGROUND.webm" type="video/webm" />
+                  Tu navegador no soporta el elemento de video.
+                </video>
               </div>
-              <div className="w-full md:w-1/2 flex justify-center">
-                <div className="max-w-md w-full bg-cardBg backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-gray-700">
-                  <h2 className="text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Correo"
-                      required
-                      className="input-field"
-                    />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Contraseña"
-                      required
-                      className="input-field"
-                    />
-                    <button type="submit" className="button-primary">
-                      Iniciar Sesión
-                    </button>
-                  </form>
-                  <p className="text-center mt-4 text-gray-300">
-                    ¿No tienes cuenta?{' '}
-                    <a
-                      href="/register"
-                      className="text-cyan-400 hover:text-cyan-300 transition-all"
-                    >
-                      Regístrate
-                    </a>
-                  </p>
-                  {error && <p className="text-center text-red-500 mt-4">{error}</p>}
-                </div>
+              <div className="text-center">
+                <h1 className="text-3xl sm:text-4xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
+                <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto">
+                  Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso, mejora tu movilidad y recupera tu fuerza con tecnología de punta.
+                </p>
+              </div>
+              <div className="w-full bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Correo"
+                    required
+                    className="input-field text-sm sm:text-base"
+                  />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Contraseña"
+                    required
+                    className="input-field text-sm sm:text-base"
+                  />
+                  <button type="submit" className="button-primary text-sm sm:text-base">
+                    Iniciar Sesión
+                  </button>
+                </form>
+                <p className="text-center mt-4 text-gray-300 text-sm sm:text-base">
+                  ¿No tienes cuenta?{' '}
+                  <a href="/register" className="text-cyan-400 hover:text-cyan-300 transition-all">
+                    Regístrate
+                  </a>
+                </p>
+                {error && <p className="text-center text-red-500 mt-4 text-sm sm:text-base">{error}</p>}
               </div>
             </div>
           </div>
         ) : (
-          <div className="container mx-auto py-16 px-6">
+          <div className="container mx-auto py-8 px-4 sm:px-6">
             {user.userType === 'physio' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                  <h3 className="text-2xl font-bold text-cyan-300 mb-4 text-center">Agregar Paciente</h3>
-                  <form onSubmit={handleAddPatient} className="space-y-4 w-full">
-                    <input
-                      type="text"
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      placeholder="Nombre del paciente"
-                      required
-                      className="input-field"
-                    />
-                    <input
-                      type="email"
-                      value={patientEmail}
-                      onChange={(e) => setPatientEmail(e.target.value)}
-                      placeholder="Correo del paciente"
-                      required
-                      className="input-field"
-                    />
-                    <button type="submit" className="button-primary">Agregar</button>
-                  </form>
-                  <h3 className="text-2xl font-bold text-cyan-300 mt-8 mb-4 text-center">Notificaciones</h3>
-                  {notifications.length === 0 ? (
-                    <p className="text-gray-400 text-center">No hay notificaciones.</p>
-                  ) : (
-                    <>
-                      <ul className="space-y-4 w-full">
-                        {notifications.slice(0, showAllNotifications ? notifications.length : 2).map((notif, index) => (
-                          <li key={index} className="p-4 bg-darkBg rounded-lg shadow-md border border-gray-600">
-                            <span className={`mr-2 ${notif.read ? 'text-gray-500' : 'text-yellow-500'}`}>●</span>
-                            <div>
-                              <p className="text-gray-400">{notif.message}</p>
-                              <p className="text-gray-500 text-sm">{new Date(notif.timestamp).toLocaleString('es-ES')}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                      {notifications.length > 2 && (
-                        <button
-                          onClick={() => setShowAllNotifications(!showAllNotifications)}
-                          className="text-cyan-400 hover:text-cyan-300 transition-all mt-4 block mx-auto"
-                        >
-                          {showAllNotifications ? 'Ver menos' : 'Ver más'}
-                        </button>
-                      )}
-                    </>
-                  )}
-                  <h3 className="text-2xl font-bold text-cyan-300 mt-8 mb-4 text-center">Pacientes Registrados</h3>
-                  {loading ? (
-                    <p className="text-gray-400 text-center">Cargando...</p>
-                  ) : patients.length === 0 ? (
-                    <p className="text-gray-400 text-center">No hay pacientes registrados.</p>
-                  ) : (
-                    <>
-                      <ul className="space-y-4 w-full">
-                        {patients.slice(0, showAllPatients ? patients.length : 2).map((patient) => (
-                          <li key={patient.id} className="flex justify-between items-center p-4 bg-darkBg rounded-lg shadow-md border border-gray-600">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-gray-300">
-                                {patient.nombre} ({patient.email})
-                              </span>
-                              {!patient.isRegistered && (
-                                <span className="text-red-500 text-sm font-semibold">[No registrado]</span>
-                              )}
-                              {patient.hasSessions && (
-                                <span className="text-gray-500 text-sm">
-                                  ({patient.sessionCount} sesiones)
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full md:w-1/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                  <div className="min-h-[150px]">
+                    <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Agregar Paciente</h3>
+                    <form onSubmit={handleAddPatient} className="space-y-4 w-full">
+                      <input
+                        type="text"
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="Nombre del paciente"
+                        required
+                        className="input-field text-sm sm:text-base"
+                      />
+                      <input
+                        type="email"
+                        value={patientEmail}
+                        onChange={(e) => setPatientEmail(e.target.value)}
+                        placeholder="Correo del paciente"
+                        required
+                        className="input-field text-sm sm:text-base"
+                      />
+                      <button type="submit" className="button-primary text-sm sm:text-base">Agregar</button>
+                    </form>
+                  </div>
+                  <div className="min-h-[200px] mt-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Notificaciones</h3>
+                    {notifications.length === 0 ? (
+                      <p className="text-gray-400 text-center text-sm sm:text-base">No hay notificaciones.</p>
+                    ) : (
+                      <>
+                        <ul className="space-y-3 w-full">
+                          {notifications.slice(0, showAllNotifications ? notifications.length : 2).map((notif, index) => (
+                            <li key={index} className="p-3 bg-darkBg rounded-lg shadow-md border border-gray-600 flex items-start">
+                              <span className={`mr-2 ${notif.read ? 'text-gray-500' : 'text-yellow-500'}`}>●</span>
+                              <div>
+                                <p className="text-gray-400 text-sm">{notif.message}</p>
+                                <p className="text-gray-500 text-xs">{new Date(notif.timestamp).toLocaleString('es-ES')}</p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                        {notifications.length > 2 && (
+                          <button
+                            onClick={() => setShowAllNotifications(!showAllNotifications)}
+                            className="text-cyan-400 hover:text-cyan-300 transition-all mt-4 block mx-auto text-sm"
+                          >
+                            {showAllNotifications ? 'Ver menos' : 'Ver más'}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="min-h-[200px] mt-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Pacientes Registrados</h3>
+                    {loading ? (
+                      <p className="text-gray-400 text-center text-sm sm:text-base">Cargando...</p>
+                    ) : patients.length === 0 ? (
+                      <p className="text-gray-400 text-center text-sm sm:text-base">No hay pacientes registrados.</p>
+                    ) : (
+                      <>
+                        <ul className="space-y-3 w-full">
+                          {patients.slice(0, showAllPatients ? patients.length : 2).map((patient) => (
+                            <li key={patient.id} className="p-3 bg-darkBg rounded-lg shadow-md border border-gray-600 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mb-2 sm:mb-0">
+                                <span className="text-gray-300 text-sm">
+                                  {patient.nombre} ({patient.email})
                                 </span>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => {
-                                setChartOptions({
-                                  ...initialChartOptions,
-                                  subtitle: { text: 'Cargando datos...', style: { color: '#a0aec0', fontSize: '14px' } },
-                                  series: [
-                                    { ...initialChartOptions.series[0], data: [] },
-                                    { ...initialChartOptions.series[1], data: [] },
-                                    { ...initialChartOptions.series[2], data: [] },
-                                    { ...initialChartOptions.series[3], data: [] },
-                                  ],
-                                });
-                                setTotalSessions(0);
-                                setProgressPercentage(0.0);
-                                setSelectedPatient(patient);
-                                if (patient.isRegistered && patient.hasSessions) {
-                                  getDailyProgressChart(patient.email);
-                                } else {
+                                {!patient.isRegistered && (
+                                  <span className="text-red-500 text-xs font-semibold">[No registrado]</span>
+                                )}
+                                {patient.hasSessions && (
+                                  <span className="text-gray-500 text-xs">
+                                    ({patient.sessionCount} sesiones)
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
                                   setChartOptions({
-                                    ...initialChartOptions,
-                                    subtitle: { text: 'Aún no hay datos registrados para este paciente.', style: { color: '#ff4444', fontSize: '14px' } },
+                                    ...getChartOptions(isMobile()),
+                                    subtitle: { text: 'Cargando datos...', style: { color: '#a0aec0', fontSize: '14px' } },
                                     series: [
-                                      { ...initialChartOptions.series[0], data: [] },
-                                      { ...initialChartOptions.series[1], data: [] },
-                                      { ...initialChartOptions.series[2], data: [] },
-                                      { ...initialChartOptions.series[3], data: [] },
+                                      { ...getChartOptions(isMobile()).series[0], data: [] },
+                                      { ...getChartOptions(isMobile()).series[1], data: [] },
+                                      { ...getChartOptions(isMobile()).series[2], data: [] },
+                                      { ...getChartOptions(isMobile()).series[3], data: [] },
                                     ],
                                   });
-                                }
-                              }}
-                              className="text-cyan-400 hover:text-cyan-300 transition-all"
-                              disabled={!patient.isRegistered}
-                            >
-                              Ver
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                      {patients.length > 2 && (
-                        <button
-                          onClick={() => setShowAllPatients(!showAllPatients)}
-                          className="text-cyan-400 hover:text-cyan-300 transition-all mt-4 block mx-auto"
-                        >
-                          {showAllPatients ? 'Ver menos' : 'Ver más'}
-                        </button>
-                      )}
-                    </>
-                  )}
-                  <div className="mt-8 w-full">
-                    <h4 className="text-xl font-bold text-cyan-300 mb-4 text-center">Estadísticas Rápidas</h4>
-                    <div className="space-y-4 text-center">
-                      <p className="text-gray-300">Pacientes registrados: {patients.length}</p>
-                      <p className="text-gray-300">Sesiones registradas: {totalSessions}</p>
-                      <p className="text-gray-300">Última actualización: {new Date().toLocaleDateString()}</p>
+                                  setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+                                  setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+                                  setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+                                  setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
+                                  setTotalSessions(0);
+                                  setProgressPercentage(0.0);
+                                  setSelectedPatient(patient);
+                                  if (patient.isRegistered && patient.hasSessions) {
+                                    getDailyProgressChart(patient.email);
+                                  } else {
+                                    setChartOptions({
+                                      ...getChartOptions(isMobile()),
+                                      subtitle: { text: 'Aún no hay datos registrados para este paciente.', style: { color: '#ff4444', fontSize: '14px' } },
+                                      series: [
+                                        { ...getChartOptions(isMobile()).series[0], data: [] },
+                                        { ...getChartOptions(isMobile()).series[1], data: [] },
+                                        { ...getChartOptions(isMobile()).series[2], data: [] },
+                                        { ...getChartOptions(isMobile()).series[3], data: [] },
+                                      ],
+                                    });
+                                    setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
+                                    setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
+                                    setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
+                                    setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
+                                  }
+                                }}
+                                className="text-cyan-400 hover:text-cyan-300 transition-all text-sm"
+                                disabled={!patient.isRegistered}
+                              >
+                                Ver
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        {patients.length > 2 && (
+                          <button
+                            onClick={() => setShowAllPatients(!showAllPatients)}
+                            className="text-cyan-400 hover:text-cyan-300 transition-all mt-4 block mx-auto text-sm"
+                          >
+                            {showAllPatients ? 'Ver menos' : 'Ver más'}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="min-h-[100px] mt-6">
+                    <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Estadísticas Rápidas</h4>
+                    <div className="space-y-2 text-center">
+                      <p className="text-gray-300 text-sm">Pacientes registrados: {patients.length}</p>
+                      <p className="text-gray-300 text-sm">Sesiones registradas: {totalSessions}</p>
+                      <p className="text-gray-300 text-sm">Última actualización: {new Date().toLocaleDateString()}</p>
                     </div>
                   </div>
                   {selectedPatient && selectedPatient.observaciones && selectedPatient.observaciones.length > 0 && (
-                    <div className="mt-8 p-4 bg-darkBg rounded-lg shadow-md border border-gray-600">
-                      <h5 className="text-xl font-bold text-cyan-300 mb-4">Historial de Observaciones</h5>
+                    <div className="min-h-[100px] mt-6 p-4 bg-darkBg rounded-lg shadow-md border border-gray-600">
+                      <h5 className="text-lg font-bold text-cyan-300 mb-4">Historial de Observaciones</h5>
                       {selectedPatient.observaciones.map((obs, index) => (
-                        <p key={index} className="text-gray-300 whitespace-pre-wrap">
+                        <p key={index} className="text-gray-300 whitespace-pre-wrap text-sm">
                           {new Date(obs.fechaObservacion).toLocaleString()}: {obs.text}
                         </p>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="md:col-span-2 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                <div className="w-full md:w-2/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
                   {selectedPatient ? (
                     <>
-                      <h3 className="text-2xl font-bold text-cyan-300 mb-4 text-center">
+                      <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">
                         Progreso de {selectedPatient.nombre}
                       </h3>
-                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
-                      </div>
-                      <div className="mt-8 w-full">
-                        <h4 className="text-xl font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
+                      {isMobile() ? (
+                        <div className="space-y-6">
+                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                            <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
+                          </div>
+                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                            <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
+                          </div>
+                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                            <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
+                          </div>
+                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                            <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+                        </div>
+                      )}
+                      <div className="mt-6 w-full">
+                        <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
                         <textarea
                           value={observaciones}
                           onChange={(e) => setObservaciones(e.target.value)}
                           placeholder="Escribe tus observaciones aquí..."
-                          className="input-field h-32"
+                          className="input-field h-32 text-sm"
                         />
-                        <button onClick={handleAddObservacion} className="button-primary mt-4">
+                        <button onClick={handleAddObservacion} className="button-primary mt-4 text-sm">
                           Guardar Observación
                         </button>
                       </div>
-                      <button onClick={handleDownloadReport} className="button-primary mt-4">
+                      <button onClick={handleDownloadReport} className="button-primary mt-4 text-sm">
                         Descargar Informe PDF
                       </button>
                     </>
                   ) : (
-                    <p className="text-gray-400 text-center">Selecciona un paciente para ver su progreso.</p>
+                    <p className="text-gray-400 text-center text-sm sm:text-base">Selecciona un paciente para ver su progreso.</p>
                   )}
-                  {error && <p className="text-center text-red-500 mt-4">{error}</p>}
+                  {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                  <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                    <HighchartsReact highcharts={Highcharts} options={chartOptions} />
-                  </div>
-                  <div className="mt-8 p-4 bg-darkBg rounded-lg shadow-md border border-gray-600 text-center">
-                    <h4 className="text-xl font-bold text-cyan-300 mb-4">Resumen</h4>
-                    <div className="relative w-32 h-32 mx-auto">
-                      <svg className="w-full h-full" viewBox="0 0 36 36">
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#4A5568" strokeWidth="3" />
-                        <path
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none"
-                          stroke="#00EAFF"
-                          strokeWidth="3"
-                          strokeDasharray={`${progressPercentage}, 100`}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-gray-300">{progressPercentage.toFixed(1)}%</span>
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full md:w-2/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                  {isMobile() ? (
+                    <div className="space-y-6">
+                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                        <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
+                      </div>
+                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                        <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
+                      </div>
+                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                        <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
+                      </div>
+                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                        <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
                       </div>
                     </div>
-                    <p className="text-gray-400 mt-4">Sesiones Completadas: {totalSessions}</p>
-                  </div>
-                  {userObservaciones && (
-                    <div className="mt-8 p-4 bg-darkBg rounded-lg shadow-md border border-gray-600 text-center">
-                      <h4 className="text-xl font-bold text-cyan-300 mb-4">Observaciones de tu Fisioterapeuta</h4>
-                      <p className="text-gray-300 whitespace-pre-wrap">{userObservaciones}</p>
+                  ) : (
+                    <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                      <HighchartsReact highcharts={Highcharts} options={chartOptions} />
                     </div>
                   )}
+                  <div className="mt-6 w-full">
+                    <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Estadísticas</h4>
+                    <div className="space-y-2 text-center">
+                      <p className="text-gray-300 text-sm">Sesiones completadas: {totalSessions}</p>
+                      <p className="text-gray-300 text-sm">Progreso general: {progressPercentage}%</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                  <h3 className="text-2xl font-bold text-cyan-300 mb-4 text-center">Componentes del Guante RECOVGLOX</h3>
-                  <div className="relative w-full h-[600px] overflow-hidden rounded-lg shadow-inner border border-gray-600">
+                <div className="w-full md:w-1/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                  <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Componentes del Guante</h3>
+                  <div className="relative w-full h-64 sm:h-80">
                     {components.map((component, index) => (
                       <div
                         key={index}
-                        className={`absolute w-full h-[600px] flex flex-col justify-start items-center p-6 transition-opacity duration-500 ease-in-out ${
+                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
                           index === currentIndex ? 'opacity-100' : 'opacity-0'
-                        }`}
-                        style={{ top: 0, left: 0 }}
+                        } flex flex-col items-center justify-center p-4`}
                       >
-                        <div className="w-full flex flex-col">
-                          <h4 className="text-xl font-semibold text-cyan-300 text-center mb-4">{component.name}</h4>
-                          <p className="text-gray-300 text-center mb-6">{component.description}</p>
-                          <div className="w-full flex-1 flex items-center justify-center">
-                            {imageLoadStatus[index].failed ? (
-                              <div className="text-gray-400 text-center">[Imagen no disponible]</div>
-                            ) : (
-                              <Image
-                                src={component.image}
-                                alt={component.name}
-                                width={400}
-                                height={400}
-                                className="max-w-full max-h-[400px] object-contain rounded-lg"
-                                onLoad={() => handleImageLoad(index)}
-                                onError={() => handleImageError(index)}
-                              />
-                            )}
-                          </div>
+                        <div className="relative w-full h-40 sm:h-48 flex items-center justify-center">
+                          {imageLoadStatus[index]?.failed ? (
+                            <div className="svg-placeholder">
+                              <span className="text-gray-400">Imagen no disponible</span>
+                            </div>
+                          ) : (
+                            <Image
+                              src={component.image}
+                              alt={component.name}
+                              layout="fill"
+                              objectFit="contain"
+                              className={`max-w-full max-h-48 transition-opacity duration-500 ${
+                                imageLoadStatus[index]?.loaded ? 'opacity-100' : 'opacity-0'
+                              }`}
+                              onLoad={() => handleImageLoad(index)}
+                              onError={() => handleImageError(index)}
+                            />
+                          )}
                         </div>
+                        <h4 className="text-base sm:text-lg font-semibold text-gray-300 mt-4 text-center">{component.name}</h4>
+                        <p className="text-gray-400 text-sm text-center mt-2">{component.description}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="flex justify-center mt-4 space-x-2">
+                    {components.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentIndex(index)}
+                        className={`w-3 h-3 rounded-full transition-all ${
+                          currentIndex === index ? 'bg-cyan-400 scale-125' : 'bg-gray-500'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-6">
+                    <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
+                    <p className="text-gray-300 whitespace-pre-wrap text-sm">{userObservaciones}</p>
                   </div>
                 </div>
               </div>
             )}
-            <button onClick={handleLogout} className="button-primary mt-8 mx-auto block">
-              Cerrar Sesión
-            </button>
+            {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
           </div>
         )}
       </main>
