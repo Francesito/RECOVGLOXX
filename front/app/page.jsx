@@ -53,11 +53,10 @@ const getChartOptions = (isMobile) => ({
     borderRadius: 16,
     shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
     backgroundPattern: true,
-    animation: { duration: 300, defer: 50 },
+    animation: false,
     events: {
       load: function() {
-        // Forzar redibujado después de cargar
-        setTimeout(() => this.reflow(), 100);
+        this.reflow(); 
       }
     }
   },
@@ -341,25 +340,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const handleScrollEnd = () => {
-      // Redibujar todos los gráficos después de scroll
-      setTimeout(() => {
-        Highcharts.charts.forEach(chart => {
-          if (chart) chart.reflow()
-        })
-      }, 300)
-    }
+    const charts = Highcharts.charts;
+    const handleScroll = () => {
+      // No hacer nada durante el scroll
+    };
   
-    // Usar debounce para mejor rendimiento
-    let scrollTimeout
-    const scrollListener = () => {
-      clearTimeout(scrollTimeout)
-      scrollTimeout = setTimeout(handleScrollEnd, 200)
-    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Solo reflow al cargar o cambiar datos
+    const timer = setTimeout(() => {
+      Highcharts.charts.forEach(chart => {
+        if (chart) {
+          chart.reflow();
+        }
+      });
+    }, 300);
   
-    window.addEventListener('scroll', scrollListener, { passive: true })
-    return () => window.removeEventListener('scroll', scrollListener)
-  }, [])
+    return () => clearTimeout(timer);
+  }, [chartOptions, angleChartOptions, forceChartOptions, servoForceChartOptions, velocityChartOptions]);
+
+} 
+
+
+
+
+
 
   const handleImageLoad = useCallback((index) => {
     setImageLoadStatus((prev) =>
@@ -1577,4 +1585,3 @@ const fetchUserObservations = useCallback(async (email) => {
       </main>
     </div>
   );
-}

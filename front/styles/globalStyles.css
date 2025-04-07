@@ -295,17 +295,14 @@ body::after {
   }
 }
 
-/* En tu archivo global.css */
-.chart-container {
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-  will-change: transform;
-  overflow: hidden;
+/* Evita que el scroll afecte a los contenedores de gráficas */
+.highcharts-container {
+  overflow: hidden !important;
+  transform: translate3d(0, 0, 0); /* Aceleración por hardware */
+  will-change: transform; /* Optimiza el renderizado */
 }
 
-.highcharts-container {
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
+/* Desactiva el scroll táctil en el contenedor padre */
+.chart-parent-container {
+  touch-action: pan-y; /* Solo permite scroll vertical (sin zoom) */
 }
