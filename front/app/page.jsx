@@ -1120,25 +1120,37 @@ const fetchUserObservations = useCallback(async (email) => {
 
   useEffect(() => {
     const checkAuthState = async () => {
-      setLoading(true);
+      setLoading(true); // Inicia en carga
       const storedUser = localStorage.getItem('user');
       console.log('checkAuthState - Stored User:', storedUser);
+  
       if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        console.log('checkAuthState - Parsed User Data:', userData);
-        setUser(userData);
-        if (userData.userType === 'physio') {
-          await fetchPatients(userData.uid);
-          await fetchNotifications(userData.uid);
-        } else {
-          await fetchUserProgress(userData.uid);
-          await fetchUserObservations(userData.email);
+        try {
+          const userData = JSON.parse(storedUser);
+          console.log('checkAuthState - Parsed User Data:', userData);
+          setUser(userData); // Establece el usuario directamente
+  
+          // Cargar datos según el tipo de usuario
+          if (userData.userType === 'physio') {
+            await fetchPatients(userData.uid);
+            await fetchNotifications(userData.uid);
+          } else {
+            await fetchUserProgress(userData.uid);
+            await fetchUserObservations(userData.email);
+          }
+        } catch (error) {
+          console.error('checkAuthState - Error parsing user data:', error);
+          localStorage.removeItem('user'); // Limpiar si hay error
+          setUser(null);
         }
+      } else {
+        setUser(null); // Asegurar que no haya usuario si no hay datos en localStorage
       }
-      setLoading(false);
+      setLoading(false); // Termina la carga
     };
+  
     checkAuthState();
-  }, [fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]);
+  }, [fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]); // Dependencias necesarias
 
   useEffect(() => {
     if (user) {

@@ -38,22 +38,32 @@ export default function Navbar({
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize();
+    handleResize(); // Ejecutar al montar para establecer el estado inicial
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Sincronizar el estado del usuario con localStorage al montar y al actualizar
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser && !user) {
+      setUser(JSON.parse(storedUser)); // Sincronizar si hay usuario en localStorage pero no en estado
+    } else if (!storedUser && user) {
+      setUser(null); // Limpiar estado si no hay usuario en localStorage
+    }
+  }, [user, setUser]); // Dependencias: user y setUser
 
   const handleLogout = useCallback(async () => {
     console.log('Navbar - handleLogout - Starting logout process');
     try {
-      await signOut(auth);
+      await signOut(auth); // Cerrar sesión en Firebase
       console.log('Navbar - handleLogout - Sign out successful');
-      localStorage.removeItem('user');
-      setUser(null);
+      localStorage.removeItem('user'); // Limpiar localStorage
+      setUser(null); // Limpiar estado del usuario
       if (typeof resetAllStates === 'function') {
-        resetAllStates();
+        resetAllStates(); // Restablecer estados del componente principal
       }
-      setMobileMenuOpen(false);
-      router.push('/');
+      setMobileMenuOpen(false); // Cerrar menú móvil
+      router.replace('/'); // Redirigir al login (replace evita volver atrás)
     } catch (err) {
       console.error('Navbar - handleLogout - Sign out error:', err.message);
       localStorage.removeItem('user');
@@ -62,7 +72,7 @@ export default function Navbar({
         resetAllStates();
       }
       setMobileMenuOpen(false);
-      router.push('/');
+      router.replace('/');
     }
   }, [setUser, resetAllStates, router]);
 
