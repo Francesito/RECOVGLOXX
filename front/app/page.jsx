@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
+import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '../src/config';
@@ -951,53 +952,72 @@ const fetchUserObservations = useCallback(async (email) => {
       />
       <main className="flex-grow pt-20">
         {!user ? (
-          <div className="container mx-auto py-8 px-4 sm:px-6 relative min-h-screen z-10 flex flex-col items-center justify-center">
-            <div className="flex flex-col items-center justify-center gap-6 w-full max-w-md">
-              <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden">
-                <video autoPlay loop muted className="w-full h-full object-cover mix-blend-multiply bg-transparent">
-                  <source src="./videos/BACKGROUND.webm" type="video/webm" />
-                  Tu navegador no soporta el elemento de video.
-                </video>
-              </div>
-              <div className="text-center">
-                <h1 className="text-3xl sm:text-4xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
-                <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto">
-                  Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso, mejora tu movilidad y recupera tu fuerza con tecnología de punta.
-                </p>
-              </div>
-              <div className="w-full bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Correo"
-                    required
-                    className="input-field text-sm sm:text-base"
-                  />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Contraseña"
-                    required
-                    className="input-field text-sm sm:text-base"
-                  />
-                  <button type="submit" className="button-primary text-sm sm:text-base">
-                    Iniciar Sesión
-                  </button>
-                </form>
-                <p className="text-center mt-4 text-gray-300 text-sm sm:text-base">
-                  ¿No tienes cuenta?{' '}
-                  <a href="/register" className="text-cyan-400 hover:text-cyan-300 transition-all">
-                    Regístrate
-                  </a>
-                </p>
-                {error && <p className="text-center text-red-500 mt-4 text-sm sm:text-base">{error}</p>}
-              </div>
+        <div className="container mx-auto py-16 px-6 relative min-h-screen z-10 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center gap-8 w-full max-w-6xl md:flex-row">
+          {/* Sección izquierda - Video y título */}
+          <div className="w-full max-w-md flex flex-col items-center space-y-8">
+            <div className="relative w-full h-48 sm:h-64 md:h-[300px] rounded-2xl overflow-hidden">
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                className="absolute top-0 left-0 w-full h-full object-cover mix-blend-multiply bg-transparent"
+              >
+                <source src="./videos/BACKGROUND.webm" type="video/webm" />
+                Tu navegador no soporta el elemento de video.
+              </video>
+            </div>
+            <div className="text-center">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
+              <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-xl mx-auto">
+                Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso, mejora tu movilidad y recupera tu fuerza con tecnología de punta.
+              </p>
             </div>
           </div>
+      
+          {/* Sección derecha - Formulario */}
+          <div className="w-full max-w-md flex justify-center">
+            <div className="w-full bg-cardBg backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-900/50 text-red-300 rounded-lg text-sm sm:text-base">
+                  {error}
+                </div>
+              )}
+      
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Correo"
+                  required
+                  className="input-field text-sm sm:text-base"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Contraseña"
+                  required
+                  className="input-field text-sm sm:text-base"
+                />
+                <button type="submit" className="button-primary text-sm sm:text-base">
+                  Iniciar Sesión
+                </button>
+              </form>
+      
+              <p className="text-center mt-4 text-gray-300 text-sm sm:text-base">
+                ¿No tienes cuenta?{' '}
+                <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-all">
+                  Regístrate
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
         ) : (
           <div className="container mx-auto py-8 px-4 sm:px-6">
             {user.userType === 'physio' ? (
