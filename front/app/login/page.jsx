@@ -61,68 +61,82 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col relative background-pattern">
-      <main className="flex-grow pt-20">
-        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-6xl">
-            {/* Sección del video y descripción */}
-            <div className="w-full md:w-1/2 flex flex-col items-center space-y-6">
-              <div className="relative w-full h-48 sm:h-64 md:h-[400px] rounded-2xl overflow-hidden">
-                <video autoPlay loop muted className="absolute top-0 left-0 w-full h-full object-cover mix-blend-multiply bg-transparent">
+      <main className="flex-grow flex items-center justify-center">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 w-full">
+            {/* Sección izquierda - Video y título (igual que en registro) */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start space-y-8">
+              <div className="relative w-full max-w-lg h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden">
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  className="absolute top-0 left-0 w-full h-full object-cover mix-blend-multiply bg-transparent"
+                >
                   <source src="./videos/BACKGROUND.webm" type="video/webm" />
                   Tu navegador no soporta el elemento de video.
                 </video>
               </div>
-              <div className="text-center">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
-                <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-md mx-auto">
-                  Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso y mejora tu movilidad.
+              <div className="text-center lg:text-left">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-cyan-300 mb-4">RECOVGLOX</h1>
+                <p className="text-lg md:text-xl text-gray-300 max-w-lg">
+                  Una solución avanzada para la rehabilitación de manos. Monitorea tu progreso, mejora tu movilidad y recupera tu fuerza con tecnología de punta.
                 </p>
               </div>
             </div>
-            {/* Sección del formulario */}
-            <div className="w-full md:w-1/2 flex justify-center">
-              <div className="w-full max-w-md bg-cardBg backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
+
+            {/* Sección derecha - Formulario (igual que en registro) */}
+            <div className="w-full lg:w-1/2 flex justify-center">
+              <div className="w-full max-w-md bg-cardBg backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-gray-700">
+                <h2 className="text-2xl md:text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
+                
                 {error && (
-                  <div className="mb-4 p-3 bg-red-900/50 text-red-300 rounded-lg text-sm sm:text-base">
+                  <div className="mb-4 p-3 bg-red-900/50 text-red-300 rounded-lg text-sm">
                     {error}
                   </div>
                 )}
-                <form onSubmit={handleLogin} className="space-y-4">
+
+                <form onSubmit={handleLogin} className="space-y-6">
                   <div>
-                    <label className="block text-gray-400 mb-2 text-sm sm:text-base">Correo Electrónico</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="input-field text-sm sm:text-base"
+                      placeholder="Correo electrónico"
                       required
+                      className="input-field w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-400 mb-2 text-sm sm:text-base">Contraseña</label>
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="input-field text-sm sm:text-base"
+                      placeholder="Contraseña"
                       required
+                      className="input-field w-full"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="button-primary text-sm sm:text-base"
+                    className="button-primary w-full"
                     disabled={!isInitialized}
                   >
                     {isInitialized ? 'Iniciar Sesión' : 'Cargando...'}
                   </button>
                 </form>
-                <p className="text-gray-400 text-center mt-4 text-sm sm:text-base">
-                  ¿No tienes una cuenta?{' '}
-                  <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-all">
-                    Regístrate aquí
-                  </Link>
-                </p>
+
+                <div className="mt-6 text-center">
+                  <p className="text-gray-300">
+                    ¿No tienes cuenta?{' '}
+                    <Link 
+                      href="/register" 
+                      className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+                    >
+                      Regístrate aquí
+                    </Link>
+                  </p>
+                </div>
               </div>
             </div>
           </div>

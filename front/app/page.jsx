@@ -1,4 +1,3 @@
-// app/page.jsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -38,16 +37,19 @@ Highcharts.wrap(Highcharts.Chart.prototype, 'getContainer', function (proceed) {
 const isMobile = () => (typeof window !== 'undefined' && window.innerWidth <= 768) || false;
 
 // Opciones para la gráfica combinada (desktop)
+// Dentro de getChartOptions, ajustamos el ancho y aseguramos que los elementos sean legibles
+// Dentro de getChartOptions, ajustamos el ancho a 1000px en escritorio
 const getChartOptions = (isMobile) => ({
   chart: {
     type: isMobile ? 'column' : 'line',
     height: isMobile ? 300 : 550,
+    width: isMobile ? null : 600, // Mantenemos el ancho de 750px en escritorio
     backgroundColor: 'rgba(26, 32, 44, 0.95)',
     style: { fontFamily: 'Roboto, sans-serif' },
     borderRadius: 16,
     shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
     backgroundPattern: true,
-    animation: { duration: 1500, easing: 'easeOutBounce' },
+    animation: { duration: 1500 },
   },
   title: { text: 'Progreso de Rehabilitación', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
   subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '14px' } },
@@ -207,7 +209,7 @@ const getSingleChartOptions = (type, title, yAxisTitle, yAxisMax, yAxisInterval,
     borderRadius: 16,
     shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
     backgroundPattern: true,
-    animation: { duration: 1500, easing: 'easeOutBounce' },
+    animation: { duration: 1500 }, // Eliminamos easing: 'easeOutBounce'
   },
   title: { text: title, style: { color: '#e5e7eb', fontSize: '18px', fontWeight: 'bold' } },
   subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } },
@@ -299,14 +301,11 @@ export default function Home() {
 
   const components = useMemo(
     () => [
-      { name: 'Raspberry Pi 4 Modelo B', description: 'Microcontrolador principal con WiFi y Bluetooth.', image: '/imagenes/raspberry.jpg' },
       { name: 'Sensores Flexibles', description: 'Miden la flexión de los dedos.', image: '/imagenes/sensoresflexibles.png' },
-      { name: 'MPU6050 (Giroscopio SparkFun)', description: 'Acelerómetro y giroscopio para detectar movimientos de la mano.', image: '/imagenes/sparkfun.jpg' },
-      { name: 'Servomotores SM-S4306R', description: 'Asisten en los movimientos de los dedos con rotación continua.', image: '/imagenes/servo.jpg' },
-      { name: 'Batería Recargable', description: 'Fuente de alimentación portátil.', image: '/imagenes/bateria.png' },
-      { name: 'Módulo Bluetooth/WiFi', description: 'Comunicación con la app y la web.', image: '/imagenes/modulo.jpg' },
-      { name: 'Cables y Conectores', description: 'Para integrar los componentes.', image: '/imagenes/jumpers.jpg' },
-      { name: 'Guante de Tela o Neopreno', description: 'Base para montar los sensores.', image: '/imagenes/guantes.jpeg' },
+      { name: 'MPU6050 (Giroscopio SparkFun)', description: 'Acelerómetro y giroscopio para detectar movimientos de la mano.', image: '/imagenes/sparkfun.png' },
+      { name: 'Servomotores SM-S4306R', description: 'Asisten en los movimientos de los dedos con rotación continua.', image: '/imagenes/servo.png' },
+      { name: 'Cables y Conectores', description: 'Para integrar los componentes.', image: '/imagenes/jumpers.png' },
+      { name: 'Guante de Tela o Neopreno', description: 'Base para montar los sensores.', image: '/imagenes/guantes.png' },
     ],
     []
   );
@@ -687,7 +686,7 @@ export default function Home() {
           'Sin observaciones';
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(9);
-        doc.text(observacionesText.split('\n'), 20, 190, { maxWidth: 170, lineHeightFactor: 1.2 });
+        doc.text(observacionesText, 20, 190, { maxWidth: 170, lineHeightFactor: 1.2 });
         doc.save(`Informe_Progreso_${selectedPatient.nombre}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
       } else {
         setError('No hay datos disponibles para descargar.');
@@ -813,25 +812,31 @@ export default function Home() {
     }
   }, []);
 
-  const fetchUserObservations = useCallback(async (email) => {
-    console.log('fetchUserObservations - Email:', email);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/observations/${email}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+// Función para obtener las observaciones del usuario (paciente)
+const fetchUserObservations = useCallback(async (email) => {
+  console.log('fetchUserObservations - Email:', email);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/observations/${email}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Error al cargar observaciones.');
-      }
-
-      setUserObservaciones(data.observaciones || 'No hay observaciones disponibles.');
-    } catch (err) {
-      console.error('fetchUserObservations - Error:', err.message);
-      setError('Error al cargar observaciones: ' + err.message);
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Error al cargar observaciones.');
     }
-  }, []);
+
+    // Aseguramos que data.observaciones sea un array, y si no hay observaciones, devolvemos un array vacío
+    const observaciones = Array.isArray(data.observaciones) && data.observaciones.length > 0
+      ? data.observaciones
+      : [];
+    setUserObservaciones(observaciones);
+  } catch (err) {
+    console.error('fetchUserObservations - Error:', err.message);
+    setError('Error al cargar observaciones: ' + err.message);
+    setUserObservaciones([]); // En caso de error, seteamos un array vacío
+  }
+}, []);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -1137,12 +1142,12 @@ export default function Home() {
                       <p className="text-gray-300 text-sm">Última actualización: {new Date().toLocaleDateString()}</p>
                     </div>
                   </div>
-                  {selectedPatient && selectedPatient.observaciones && selectedPatient.observaciones.length > 0 && (
+                  {selectedPatient && Array.isArray(selectedPatient.observaciones) && selectedPatient.observaciones.length > 0 && (
                     <div className="min-h-[100px] mt-6 p-4 bg-darkBg rounded-lg shadow-md border border-gray-600">
                       <h5 className="text-lg font-bold text-cyan-300 mb-4">Historial de Observaciones</h5>
                       {selectedPatient.observaciones.map((obs, index) => (
                         <p key={index} className="text-gray-300 whitespace-pre-wrap text-sm">
-                          {new Date(obs.fechaObservacion).toLocaleString()}: {obs.text}
+                          {obs.fechaObservacion ? new Date(obs.fechaObservacion).toLocaleString() : 'Fecha no disponible'}: {obs.text || 'Sin texto'}
                         </p>
                       ))}
                     </div>
@@ -1156,21 +1161,21 @@ export default function Home() {
                       </h3>
                       {isMobile() ? (
                         <div className="space-y-6">
-                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
                             <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
                           </div>
-                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
                             <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
                           </div>
-                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
                             <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
                           </div>
-                          <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
                             <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
                           <HighchartsReact highcharts={Highcharts} options={chartOptions} />
                         </div>
                       )}
@@ -1197,89 +1202,102 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="w-full md:w-2/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                  {isMobile() ? (
-                    <div className="space-y-6">
-                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                        <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
-                      </div>
-                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                        <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
-                      </div>
-                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                        <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
-                      </div>
-                      <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                        <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full chart-container p-4 bg-darkBg rounded-lg shadow-inner">
-                      <HighchartsReact highcharts={Highcharts} options={chartOptions} />
-                    </div>
-                  )}
-                  <div className="mt-6 w-full">
-                    <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Estadísticas</h4>
-                    <div className="space-y-2 text-center">
-                      <p className="text-gray-300 text-sm">Sesiones completadas: {totalSessions}</p>
-                      <p className="text-gray-300 text-sm">Progreso general: {progressPercentage}%</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full md:w-1/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
-                  <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Componentes del Guante</h3>
-                  <div className="relative w-full h-64 sm:h-80">
-                    {components.map((component, index) => (
-                      <div
-                        key={index}
-                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                          index === currentIndex ? 'opacity-100' : 'opacity-0'
-                        } flex flex-col items-center justify-center p-4`}
-                      >
-                        <div className="relative w-full h-40 sm:h-48 flex items-center justify-center">
-                          {imageLoadStatus[index]?.failed ? (
-                            <div className="svg-placeholder">
-                              <span className="text-gray-400">Imagen no disponible</span>
-                            </div>
-                          ) : (
-                            <Image
-                              src={component.image}
-                              alt={component.name}
-                              layout="fill"
-                              objectFit="contain"
-                              className={`max-w-full max-h-48 transition-opacity duration-500 ${
-                                imageLoadStatus[index]?.loaded ? 'opacity-100' : 'opacity-0'
-                              }`}
-                              onLoad={() => handleImageLoad(index)}
-                              onError={() => handleImageError(index)}
-                            />
-                          )}
+              <div className="max-w-[1280px] mx-auto py-8 px-4 sm:px-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="w-full md:w-2/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                    <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">
+                      Tu Progreso de Rehabilitación
+                    </h3>
+                    {isMobile() ? (
+                      <div className="space-y-6">
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-full">
+                          <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
                         </div>
-                        <h4 className="text-base sm:text-lg font-semibold text-gray-300 mt-4 text-center">{component.name}</h4>
-                        <p className="text-gray-400 text-sm text-center mt-2">{component.description}</p>
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-full">
+                          <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
+                        </div>
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-full">
+                          <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
+                        </div>
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-full">
+                          <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
+                        </div>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-full">
+                        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+                      </div>
+                    )}
+                    <div className="mt-6 w-full">
+                      <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Estadísticas</h4>
+                      <div className="space-y-2 text-center">
+                        <p className="text-gray-300 text-sm">Sesiones completadas: {totalSessions}</p>
+                        <p className="text-gray-300 text-sm">Progreso general: {progressPercentage}%</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-center mt-4 space-x-2">
-                    {components.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentIndex(index)}
-                        className={`w-3 h-3 rounded-full transition-all ${
-                          currentIndex === index ? 'bg-cyan-400 scale-125' : 'bg-gray-500'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-6">
-                    <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
-                    <p className="text-gray-300 whitespace-pre-wrap text-sm">{userObservaciones}</p>
+                  <div className="w-full md:w-1/3 bg-cardBg backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-gray-700">
+                    <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-4 text-center">Componentes del Guante</h3>
+                    <div className="relative w-full h-64 sm:h-80">
+                      {components.map((component, index) => (
+                        <div
+                          key={index}
+                          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                            index === currentIndex ? 'opacity-100' : 'opacity-0'
+                          } flex flex-col items-center justify-center p-4`}
+                        >
+                          <div className="relative w-full h-40 sm:h-48 flex items-center justify-center">
+                            {imageLoadStatus[index]?.failed ? (
+                              <div className="svg-placeholder">
+                                <span className="text-gray-400">Imagen no disponible</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={component.image}
+                                alt={component.name}
+                                layout="fill"
+                                objectFit="contain"
+                                className={`transition-opacity duration-1000 ease-in-out ${
+                                  imageLoadStatus[index]?.loaded ? 'opacity-100' : 'opacity-0'
+                                } max-w-full max-h-full rounded-lg shadow-md border border-gray-600`}
+                                onLoad={() => handleImageLoad(index)}
+                                onError={() => handleImageError(index)}
+                              />
+                            )}
+                          </div>
+                          <h4 className="text-base sm:text-lg font-semibold text-cyan-300 mt-4 text-center">{component.name}</h4>
+                          <p className="text-gray-400 mt-2 text-center text-sm sm:text-base">{component.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-center mt-4 space-x-2">
+                      {components.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentIndex(index)}
+                          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                            index === currentIndex ? 'bg-cyan-400 scale-125' : 'bg-gray-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-6">
+                      <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
+                      {Array.isArray(userObservaciones) && userObservaciones.length > 0 ? (
+                        userObservaciones.map((obs, index) => (
+                          <p key={index} className="text-gray-300 whitespace-pre-wrap text-sm">
+                            {obs.fechaObservacion ? new Date(obs.fechaObservacion).toLocaleString() : 'Fecha no disponible'}: {obs.text || 'Sin texto'}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-gray-300 whitespace-pre-wrap text-sm">No hay observaciones disponibles.</p>
+                      )}
+                    </div>
+                    {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                   </div>
                 </div>
               </div>
             )}
-            {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
           </div>
         )}
       </main>
