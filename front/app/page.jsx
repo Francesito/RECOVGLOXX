@@ -1241,12 +1241,6 @@ const fetchUserObservations = useCallback(async (email) => {
           <div className="w-full max-w-md flex justify-center">
             <div className="w-full bg-cardBg backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
-              
-              {error && (
-                <div className="mb-4 p-3 bg-red-900/50 text-red-300 rounded-lg text-sm sm:text-base">
-                  {error}
-                </div>
-              )}
       
               <form onSubmit={handleSubmit} className="space-y-4">
                 <input
@@ -1480,7 +1474,6 @@ const fetchUserObservations = useCallback(async (email) => {
                   ) : (
                     <p className="text-gray-400 text-center text-sm sm:text-base">Selecciona un paciente para ver su progreso.</p>
                   )}
-                  {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                 </div>
               </div>
             ) : (
@@ -1575,7 +1568,6 @@ const fetchUserObservations = useCallback(async (email) => {
                         <p className="text-gray-300 whitespace-pre-wrap text-sm">No hay observaciones disponibles.</p>
                       )}
                     </div>
-                    {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                   </div>
                 </div>
               </div>
