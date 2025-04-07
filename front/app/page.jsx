@@ -317,15 +317,12 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const handleResize = () => {
-      setChartOptions(getChartOptions(isMobile()));
-      setAngleChartOptions(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
-      setForceChartOptions(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
-      setServoForceChartOptions(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
-      setVelocityChartOptions(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    // Configurar las opciones iniciales de las gráficas según el tamaño de pantalla al montar el componente
+    setChartOptions(getChartOptions(isMobile()));
+    setAngleChartOptions(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
+    setForceChartOptions(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
+    setServoForceChartOptions(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
+    setVelocityChartOptions(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
   }, []);
 
   const handleImageLoad = useCallback((index) => {
@@ -789,10 +786,10 @@ export default function Home() {
         }
       });
       
-      // Ahora cargar los datos reales
+      // Cargar los datos reales
       getDailyProgressChart(selectedPatient.email);
     }
-  }, [selectedPatient, getDailyProgressChart]);
+  }, [selectedPatient, getDailyProgressChart]); // Solo depende de selectedPatient y getDailyProgressChart
 
   const handleDownloadReport = useCallback(() => {
     if (!selectedPatient) {
