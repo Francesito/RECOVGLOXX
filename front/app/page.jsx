@@ -545,91 +545,182 @@ export default function Home() {
     try {
       const patient = patients.find(p => p.email === patientEmail);
       if (!patient || !patient.userId) {
-        setChartOptions({
+        const noDataOptions = {
           ...getChartOptions(isMobile()),
-          subtitle: { text: 'El paciente no está registrado o no tiene datos.', style: { color: '#ff4444', fontSize: '14px' } },
+          subtitle: { 
+            text: 'El paciente no está registrado o no tiene datos.', 
+            style: { color: '#ff4444', fontSize: '14px' } 
+          },
           series: [
             { ...getChartOptions(isMobile()).series[0], data: [] },
             { ...getChartOptions(isMobile()).series[1], data: [] },
             { ...getChartOptions(isMobile()).series[2], data: [] },
-            { ...getChartOptions(isMobile()).series[3], data: [] },
-          ],
+            { ...getChartOptions(isMobile()).series[3], data: [] }
+          ]
+        };
+        setChartOptions(noDataOptions);
+        setAngleChartOptions({ 
+          ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), 
+          series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }],
+          subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } }
         });
-        setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
-        setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
-        setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
-        setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
+        setForceChartOptions({ 
+          ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), 
+          series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }],
+          subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } }
+        });
+        setServoForceChartOptions({ 
+          ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), 
+          series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }],
+          subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } }
+        });
+        setVelocityChartOptions({ 
+          ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), 
+          series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }],
+          subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '12px' } }
+        });
         setTotalSessions(0);
         setProgressPercentage(0.0);
         return;
       }
-
+  
       const response = await fetch(`${API_BASE_URL}/api/progress/${patient.userId}`, {
         headers: { 'Content-Type': 'application/json' },
       });
-
       const data = await response.json();
-
+  
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al cargar progreso.');
       }
-
+  
       const { categories, series, subtitle, sessionCount } = data.data;
-
+      const progressPercentageLocal = calculateProgress({
+        Index: {
+          angle: series[0].data[0] || 0,
+          force: series[1].data[0] || 0,
+          servoforce: series[2].data[0] || 0,
+          velocity: series[3].data[0] || 0
+        },
+        Ring: {
+          angle: series[0].data[1] || 0,
+          force: series[1].data[1] || 0,
+          servoforce: series[2].data[1] || 0,
+          velocity: series[3].data[1] || 0
+        },
+        Middle: {
+          angle: series[0].data[2] || 0,
+          force: series[1].data[2] || 0,
+          servoforce: series[2].data[2] || 0,
+          velocity: series[3].data[2] || 0
+        },
+        Little: {
+          angle: series[0].data[3] || 0,
+          force: series[1].data[3] || 0,
+          servoforce: series[2].data[3] || 0,
+          velocity: series[3].data[3] || 0
+        }
+      });
+  
       const newOptions = {
         ...getChartOptions(isMobile()),
-        title: { text: 'Progreso Actual', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
         xAxis: { categories },
         series: series.map((serie, index) => ({
           ...getChartOptions(isMobile()).series[index],
           data: serie.data,
         })),
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '14px' } },
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '14px' } 
+        },
       };
-
+  
       setChartOptions(newOptions);
       setAngleChartOptions({
         ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: series[0].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], 
+          data: series[0].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setForceChartOptions({
         ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: series[1].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], 
+          data: series[1].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setServoForceChartOptions({
         ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: series[2].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], 
+          data: series[2].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setVelocityChartOptions({
         ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: series[3].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], 
+          data: series[3].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setTotalSessions(sessionCount || 0);
+      setProgressPercentage(progressPercentageLocal);
     } catch (err) {
       console.error('getDailyProgressChart - Error:', err.message);
-      setError('Error al cargar gráfico de progreso: ' + err.message);
-      setChartOptions({
+      const errorOptions = {
         ...getChartOptions(isMobile()),
-        subtitle: { text: 'Error al cargar los datos.', style: { color: 'red', fontSize: '14px' } },
+        subtitle: { 
+          text: 'Error al cargar los datos.', 
+          style: { color: 'red', fontSize: '14px' } 
+        },
         series: [
           { ...getChartOptions(isMobile()).series[0], data: [] },
           { ...getChartOptions(isMobile()).series[1], data: [] },
           { ...getChartOptions(isMobile()).series[2], data: [] },
-          { ...getChartOptions(isMobile()).series[3], data: [] },
-        ],
+          { ...getChartOptions(isMobile()).series[3], data: [] }
+        ]
+      };
+      setChartOptions(errorOptions);
+      setAngleChartOptions({ 
+        ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), 
+        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }],
+        subtitle: { text: 'Error al cargar datos', style: { color: 'red', fontSize: '12px' } }
       });
-      setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
-      setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
-      setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
-      setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
+      setForceChartOptions({ 
+        ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), 
+        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }],
+        subtitle: { text: 'Error al cargar datos', style: { color: 'red', fontSize: '12px' } }
+      });
+      setServoForceChartOptions({ 
+        ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), 
+        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }],
+        subtitle: { text: 'Error al cargar datos', style: { color: 'red', fontSize: '12px' } }
+      });
+      setVelocityChartOptions({ 
+        ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), 
+        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }],
+        subtitle: { text: 'Error al cargar datos', style: { color: 'red', fontSize: '12px' } }
+      });
       setTotalSessions(0);
       setProgressPercentage(0.0);
     }
@@ -637,6 +728,67 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedPatient && selectedPatient.isRegistered && selectedPatient.hasSessions) {
+      // Resetear todos los gráficos antes de cargar nuevos datos
+      const loadingOptions = {
+        ...getChartOptions(isMobile()),
+        subtitle: { 
+          text: 'Cargando datos...', 
+          style: { color: '#a0aec0', fontSize: '14px' } 
+        },
+        series: [
+          { ...getChartOptions(isMobile()).series[0], data: [] },
+          { ...getChartOptions(isMobile()).series[1], data: [] },
+          { ...getChartOptions(isMobile()).series[2], data: [] },
+          { ...getChartOptions(isMobile()).series[3], data: [] }
+        ]
+      };
+      setChartOptions(loadingOptions);
+      setAngleChartOptions({
+        ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'),
+        series: [{ 
+          ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], 
+          data: [] 
+        }],
+        subtitle: { 
+          text: 'Cargando datos...', 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
+      });
+      setForceChartOptions({
+        ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'),
+        series: [{ 
+          ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], 
+          data: [] 
+        }],
+        subtitle: { 
+          text: 'Cargando datos...', 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
+      });
+      setServoForceChartOptions({
+        ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'),
+        series: [{ 
+          ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], 
+          data: [] 
+        }],
+        subtitle: { 
+          text: 'Cargando datos...', 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
+      });
+      setVelocityChartOptions({
+        ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'),
+        series: [{ 
+          ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], 
+          data: [] 
+        }],
+        subtitle: { 
+          text: 'Cargando datos...', 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
+      });
+      
+      // Ahora cargar los datos reales
       getDailyProgressChart(selectedPatient.email);
     }
   }, [selectedPatient, getDailyProgressChart]);
@@ -735,28 +887,44 @@ export default function Home() {
       const response = await fetch(`${API_BASE_URL}/api/progress/${userId}`, {
         headers: { 'Content-Type': 'application/json' },
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al cargar datos.');
       }
-
+  
       const { categories, series, subtitle, sessionCount } = data.data;
-
-      const newFingerData = {};
-      const fingers = ['Index', 'Ring', 'Middle', 'Little'];
-      fingers.forEach((finger, index) => {
-        newFingerData[finger] = {
-          angle: series[0].data[index] || 0,
-          force: series[1].data[index] || 0,
-          servoforce: series[2].data[index] || 0,
-          velocity: series[3].data[index] || 0,
-        };
-      });
-
+  
+      const newFingerData = {
+        Index: {
+          angle: series[0].data[0] || 0,
+          force: series[1].data[0] || 0,
+          servoforce: series[2].data[0] || 0,
+          velocity: series[3].data[0] || 0,
+        },
+        Ring: {
+          angle: series[0].data[1] || 0,
+          force: series[1].data[1] || 0,
+          servoforce: series[2].data[1] || 0,
+          velocity: series[3].data[1] || 0,
+        },
+        Middle: {
+          angle: series[0].data[2] || 0,
+          force: series[1].data[2] || 0,
+          servoforce: series[2].data[2] || 0,
+          velocity: series[3].data[2] || 0,
+        },
+        Little: {
+          angle: series[0].data[3] || 0,
+          force: series[1].data[3] || 0,
+          servoforce: series[2].data[3] || 0,
+          velocity: series[3].data[3] || 0,
+        }
+      };
+  
       const progressPercentageLocal = calculateProgress(newFingerData);
-
+  
       const newOptions = {
         ...getChartOptions(isMobile()),
         xAxis: { categories },
@@ -764,49 +932,101 @@ export default function Home() {
           ...getChartOptions(isMobile()).series[index],
           data: serie.data,
         })),
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '14px' } },
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '14px' } 
+        },
       };
-
+  
       setFingerData(newFingerData);
       setChartOptions(newOptions);
       setAngleChartOptions({
         ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: series[0].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], 
+          data: series[0].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setForceChartOptions({
         ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: series[1].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], 
+          data: series[1].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setServoForceChartOptions({
         ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: series[2].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], 
+          data: series[2].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setVelocityChartOptions({
         ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'),
         xAxis: { categories },
-        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: series[3].data }],
-        subtitle: { text: subtitle, style: { color: '#a0aec0', fontSize: '12px' } },
+        series: [{ 
+          ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], 
+          data: series[3].data 
+        }],
+        subtitle: { 
+          text: subtitle, 
+          style: { color: '#a0aec0', fontSize: '12px' } 
+        }
       });
       setTotalSessions(sessionCount || 0);
       setProgressPercentage(progressPercentageLocal);
       setLoading(false);
     } catch (err) {
       console.error('fetchUserProgress - Error:', err.message);
-      setError('Error al cargar datos: ' + err.message);
-      setChartOptions({
+      const errorOptions = {
         ...getChartOptions(isMobile()),
-        subtitle: { text: 'Aún no hay datos registrados.', style: { color: '#ff4444', fontSize: '14px' } },
+        subtitle: { 
+          text: 'Aún no hay datos registrados.', 
+          style: { color: '#ff4444', fontSize: '14px' } 
+        },
+        series: [
+          { ...getChartOptions(isMobile()).series[0], data: [] },
+          { ...getChartOptions(isMobile()).series[1], data: [] },
+          { ...getChartOptions(isMobile()).series[2], data: [] },
+          { ...getChartOptions(isMobile()).series[3], data: [] }
+        ]
+      };
+      setChartOptions(errorOptions);
+      setAngleChartOptions({ 
+        ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), 
+        series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }],
+        subtitle: { text: 'Aún no hay datos registrados', style: { color: '#ff4444', fontSize: '12px' } }
       });
-      setAngleChartOptions({ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'), series: [{ ...getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°').series[0], data: [] }] });
-      setForceChartOptions({ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }] });
-      setServoForceChartOptions({ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }] });
-      setVelocityChartOptions({ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }] });
+      setForceChartOptions({ 
+        ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'), 
+        series: [{ ...getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N').series[0], data: [] }],
+        subtitle: { text: 'Aún no hay datos registrados', style: { color: '#ff4444', fontSize: '12px' } }
+      });
+      setServoForceChartOptions({ 
+        ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'), 
+        series: [{ ...getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N').series[0], data: [] }],
+        subtitle: { text: 'Aún no hay datos registrados', style: { color: '#ff4444', fontSize: '12px' } }
+      });
+      setVelocityChartOptions({ 
+        ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'), 
+        series: [{ ...getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s').series[0], data: [] }],
+        subtitle: { text: 'Aún no hay datos registrados', style: { color: '#ff4444', fontSize: '12px' } }
+      });
       setTotalSessions(0);
       setProgressPercentage(0.0);
       setLoading(false);
