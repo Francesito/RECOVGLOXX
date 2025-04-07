@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import jsPDF from 'jspdf';
@@ -10,70 +10,6 @@ import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '../src/config';
 import '../styles/globalStyles.css';
 import Navbar from '../components/Navbar';
-
-// Función debounce para mejorar rendimiento
-function debounce(func, wait, immediate = false) {
-  let timeout;
-  return function() {
-    const context = this, args = arguments;
-    const later = function() {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    const callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
-}
-
-// Componente Highcharts optimizado para móviles
-const StableHighchartsReact = React.memo(function StableHighchartsReact({ options, containerProps, ...props }) {
-  const chartRef = useRef(null);
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    if (chartRef.current?.chart) {
-      const chart = chartRef.current.chart;
-      const reflowChart = () => {
-        if (containerRef.current) {
-          chart.setSize(
-            containerRef.current.offsetWidth,
-            containerRef.current.offsetHeight,
-            false
-          );
-        }
-        chart.reflow();
-      };
-
-      // Reflow inmediato y con retraso para cubrir diferentes casos
-      reflowChart();
-      const timeout = setTimeout(reflowChart, 300);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [options]);
-
-  return (
-    <div 
-      ref={containerRef}
-      {...containerProps}
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        ...containerProps?.style
-      }}
-    >
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        ref={chartRef}
-        {...props}
-      />
-    </div>
-  );
-});
 
 // Configuración del patrón de fondo de Highcharts
 Highcharts.wrap(Highcharts.Chart.prototype, 'getContainer', function (proceed) {
@@ -99,11 +35,7 @@ Highcharts.wrap(Highcharts.Chart.prototype, 'getContainer', function (proceed) {
 });
 
 // Función para detectar si es móvil
-const isMobile = () => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth <= 768 || 
-         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
+const isMobile = () => (typeof window !== 'undefined' && window.innerWidth <= 768) || false;
 
 // Opciones para la gráfica combinada (desktop)
 // Dentro de getChartOptions, ajustamos el ancho y aseguramos que los elementos sean legibles
@@ -111,23 +43,14 @@ const isMobile = () => {
 const getChartOptions = (isMobile) => ({
   chart: {
     type: isMobile ? 'column' : 'line',
-      height: isMobile ? 300 : 550,
-      width: isMobile ? null : 600,
-      backgroundColor: 'rgba(26, 32, 44, 0.95)',
-      style: { fontFamily: 'Roboto, sans-serif' },
-      borderRadius: 16,
-      shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
-      backgroundPattern: true,
-      animation: isMobile ? false : { duration: 1500 }, // Desactivar animaciones en móvil
-      events: {
-        load: function() {
-          if (isMobile) {
-            setTimeout(() => {
-              this.reflow();
-            }, 300);
-          }
-        }
-      }
+    height: isMobile ? 300 : 550,
+    width: isMobile ? null : 600, // Mantenemos el ancho de 750px en escritorio
+    backgroundColor: 'rgba(26, 32, 44, 0.95)',
+    style: { fontFamily: 'Roboto, sans-serif' },
+    borderRadius: 16,
+    shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
+    backgroundPattern: true,
+    animation: { duration: 1500 },
   },
   title: { text: 'Progreso de Rehabilitación', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
   subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '14px' } },
@@ -377,12 +300,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const chartAngleRef = useRef(null);
-  const chartForceRef = useRef(null);
-  const chartServoRef = useRef(null);
-  const chartVelocityRef = useRef(null);
-  const chartCombinedRef = useRef(null);
-
   const components = useMemo(
     () => [
       { name: 'Sensores Flexibles', description: 'Miden la flexión de los dedos.', image: '/imagenes/sensoresflexibles.png' },
@@ -399,22 +316,13 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const handleResize = debounce(() => {
-      const mobile = isMobile();
-      setChartOptions(getChartOptions(mobile));
+    const handleResize = () => {
+      setChartOptions(getChartOptions(isMobile()));
       setAngleChartOptions(getSingleChartOptions('angle', 'Ángulo del Dedo', 'Ángulo (grados)', 180, 30, '#00eaff', '°'));
       setForceChartOptions(getSingleChartOptions('force', 'Fuerza', 'Fuerza (N)', 20, 5, '#ff00cc', ' N'));
       setServoForceChartOptions(getSingleChartOptions('servoforce', 'Fuerza Servo', 'Fuerza Servo (N)', 15, 3, '#ffaa00', ' N'));
       setVelocityChartOptions(getSingleChartOptions('velocity', 'Velocidad', 'Velocidad (grados/s)', 200, 40, '#a3e635', ' °/s'));
-      
-      // Reflow todos los gráficos después de cambiar el tamaño
-      if (chartAngleRef.current) chartAngleRef.current.chart?.reflow();
-      if (chartForceRef.current) chartForceRef.current.chart?.reflow();
-      if (chartServoRef.current) chartServoRef.current.chart?.reflow();
-      if (chartVelocityRef.current) chartVelocityRef.current.chart?.reflow();
-      if (chartCombinedRef.current) chartCombinedRef.current.chart?.reflow();
-    }, 300);
-  
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -1235,20 +1143,6 @@ const fetchUserObservations = useCallback(async (email) => {
   }, [fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]);
 
   useEffect(() => {
-    if (!isMobile()) return;
-  
-    const handleScroll = debounce(() => {
-      if (chartAngleRef.current?.chart) chartAngleRef.current.chart.reflow();
-      if (chartForceRef.current?.chart) chartForceRef.current.chart.reflow();
-      if (chartServoRef.current?.chart) chartServoRef.current.chart.reflow();
-      if (chartVelocityRef.current?.chart) chartVelocityRef.current.chart.reflow();
-    }, 150);
-  
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     if (user) {
       const interval = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % components.length);
@@ -1506,70 +1400,25 @@ const fetchUserObservations = useCallback(async (email) => {
                         Progreso de {selectedPatient.nombre}
                       </h3>
                       {isMobile() ? (
-  <div className="space-y-6 w-full">
-    <div className="chart-container" style={{ height: '280px', width: '100%' }}>
-      <StableHighchartsReact 
-        options={angleChartOptions} 
-        ref={chartAngleRef}
-        containerProps={{
-          style: {
-            height: '100%',
-            width: '100%'
-          }
-        }}
-      />
-    </div>
-    <div className="chart-container" style={{ height: '280px', width: '100%' }}>
-      <StableHighchartsReact 
-        options={forceChartOptions} 
-        ref={chartForceRef}
-        containerProps={{
-          style: {
-            height: '100%',
-            width: '100%'
-          }
-        }}
-      />
-    </div>
-    <div className="chart-container" style={{ height: '280px', width: '100%' }}>
-      <StableHighchartsReact 
-        options={servoForceChartOptions} 
-        ref={chartServoRef}
-        containerProps={{
-          style: {
-            height: '100%',
-            width: '100%'
-          }
-        }}
-      />
-    </div>
-    <div className="chart-container" style={{ height: '280px', width: '100%' }}>
-      <StableHighchartsReact 
-        options={velocityChartOptions} 
-        ref={chartVelocityRef}
-        containerProps={{
-          style: {
-            height: '100%',
-            width: '100%'
-          }
-        }}
-      />
-    </div>
-  </div>
-) : (
-  <div className="chart-container" style={{ height: '550px', width: '100%' }}>
-    <StableHighchartsReact 
-      options={chartOptions} 
-      ref={chartCombinedRef}
-      containerProps={{
-        style: {
-          height: '100%',
-          width: '100%'
-        }
-      }}
-    />
-  </div>
-)}
+                        <div className="space-y-6">
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
+                            <HighchartsReact highcharts={Highcharts} options={angleChartOptions} />
+                          </div>
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
+                            <HighchartsReact highcharts={Highcharts} options={forceChartOptions} />
+                          </div>
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
+                            <HighchartsReact highcharts={Highcharts} options={servoForceChartOptions} />
+                          </div>
+                          <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
+                            <HighchartsReact highcharts={Highcharts} options={velocityChartOptions} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
+                          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+                        </div>
+                      )}
                       <div className="mt-6 w-full">
                         <h4 className="text-lg font-bold text-cyan-300 mb-4 text-center">Observaciones</h4>
                         <textarea
