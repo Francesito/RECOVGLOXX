@@ -339,31 +339,31 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    const charts = Highcharts.charts;
-    const handleScroll = () => {
-      // No hacer nada durante el scroll
-    };
   
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    // Solo reflow al cargar o cambiar datos
-    const timer = setTimeout(() => {
-      Highcharts.charts.forEach(chart => {
-        if (chart) {
-          chart.reflow();
-        }
-      });
-    }, 300);
-  
-    return () => clearTimeout(timer);
-  }, [chartOptions, angleChartOptions, forceChartOptions, servoForceChartOptions, velocityChartOptions]);
-
 } 
 
+useEffect(() => {
+  const charts = Highcharts.charts;
+  const handleScroll = () => {
+    // No hacer nada durante el scroll
+  };
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  return () => window.removeEventListener('scroll', handleScroll);
+}, []);
+
+useEffect(() => {
+  // Solo reflow al cargar o cambiar datos
+  const timer = setTimeout(() => {
+    Highcharts.charts.forEach(chart => {
+      if (chart) {
+        chart.reflow();
+      }
+    });
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [chartOptions, angleChartOptions, forceChartOptions, servoForceChartOptions, velocityChartOptions]);
 
 
 
