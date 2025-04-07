@@ -42,6 +42,9 @@ const isMobile = () => (typeof window !== 'undefined' && window.innerWidth <= 76
 // Dentro de getChartOptions, ajustamos el ancho a 1000px en escritorio
 const getChartOptions = (isMobile) => ({
   chart: {
+    panning: false,  // Desactiva el paneo
+    pinchType: null,  // Desactiva el zoom con pellizco
+    zoomType: null,   // Desactiva todo tipo de zoom
     type: isMobile ? 'column' : 'line',
     height: isMobile ? 300 : 550,
     width: isMobile ? null : 600, // Mantenemos el ancho de 750px en escritorio
@@ -50,7 +53,13 @@ const getChartOptions = (isMobile) => ({
     borderRadius: 16,
     shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
     backgroundPattern: true,
-    animation: { duration: 1500 },
+    animation: { duration: 300, defer: 50 },
+    events: {
+      load: function() {
+        // Forzar redibujado después de cargar
+        setTimeout(() => this.reflow(), 100);
+      }
+    }
   },
   title: { text: 'Progreso de Rehabilitación', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
   subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '14px' } },
@@ -148,6 +157,7 @@ const getChartOptions = (isMobile) => ({
       marker: {
         symbol: 'circle',
         radius: 6,
+        stickyTracking: false,
         fillColor: '#ffffff',
         lineWidth: 2,
         lineColor: null,
@@ -175,7 +185,10 @@ const getChartOptions = (isMobile) => ({
         padding: 4,
         shadow: true,
       },
-      events: { legendItemClick: function () { return true; } },
+      events: { legendItemClick: function () { return true; },
+      mouseOver: null,
+      mouseOut: null,
+     },
     },
   },
   series: [
@@ -326,6 +339,27 @@ export default function Home() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const handleScrollEnd = () => {
+      // Redibujar todos los gráficos después de scroll
+      setTimeout(() => {
+        Highcharts.charts.forEach(chart => {
+          if (chart) chart.reflow()
+        })
+      }, 300)
+    }
+  
+    // Usar debounce para mejor rendimiento
+    let scrollTimeout
+    const scrollListener = () => {
+      clearTimeout(scrollTimeout)
+      scrollTimeout = setTimeout(handleScrollEnd, 200)
+    }
+  
+    window.addEventListener('scroll', scrollListener, { passive: true })
+    return () => window.removeEventListener('scroll', scrollListener)
+  }, [])
 
   const handleImageLoad = useCallback((index) => {
     setImageLoadStatus((prev) =>
@@ -1416,7 +1450,7 @@ const fetchUserObservations = useCallback(async (email) => {
                         </div>
                       ) : (
                         <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
-                          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+                          <HighchartsWrapper options={chartOptions} />
                         </div>
                       )}
                       <div className="mt-6 w-full">

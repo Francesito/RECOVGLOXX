@@ -294,3 +294,18 @@ body::after {
     height: 400px;
   }
 }
+
+/* En tu archivo global.css */
+.chart-container {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+  overflow: hidden;
+}
+
+.highcharts-container {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+}
