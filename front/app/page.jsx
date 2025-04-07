@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -42,9 +43,6 @@ const isMobile = () => (typeof window !== 'undefined' && window.innerWidth <= 76
 // Dentro de getChartOptions, ajustamos el ancho a 1000px en escritorio
 const getChartOptions = (isMobile) => ({
   chart: {
-    panning: false,  // Desactiva el paneo
-    pinchType: null,  // Desactiva el zoom con pellizco
-    zoomType: null,   // Desactiva todo tipo de zoom
     type: isMobile ? 'column' : 'line',
     height: isMobile ? 300 : 550,
     width: isMobile ? null : 600, // Mantenemos el ancho de 750px en escritorio
@@ -53,12 +51,7 @@ const getChartOptions = (isMobile) => ({
     borderRadius: 16,
     shadow: { color: 'rgba(0, 0, 0, 0.5)', offsetX: 0, offsetY: 5, opacity: 0.2, width: 10 },
     backgroundPattern: true,
-    animation: false,
-    events: {
-      load: function() {
-        this.reflow(); 
-      }
-    }
+    animation: { duration: 1500 },
   },
   title: { text: 'Progreso de Rehabilitación', style: { color: '#e5e7eb', fontSize: '24px', fontWeight: 'bold' } },
   subtitle: { text: 'No hay datos disponibles', style: { color: '#ff4444', fontSize: '14px' } },
@@ -156,7 +149,6 @@ const getChartOptions = (isMobile) => ({
       marker: {
         symbol: 'circle',
         radius: 6,
-        stickyTracking: false,
         fillColor: '#ffffff',
         lineWidth: 2,
         lineColor: null,
@@ -184,10 +176,7 @@ const getChartOptions = (isMobile) => ({
         padding: 4,
         shadow: true,
       },
-      events: { legendItemClick: function () { return true; },
-      mouseOver: null,
-      mouseOut: null,
-     },
+      events: { legendItemClick: function () { return true; } },
     },
   },
   series: [
@@ -338,36 +327,6 @@ export default function Home() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  
-} 
-
-useEffect(() => {
-  const charts = Highcharts.charts;
-  const handleScroll = () => {
-    // No hacer nada durante el scroll
-  };
-
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  return () => window.removeEventListener('scroll', handleScroll);
-}, []);
-
-useEffect(() => {
-  // Solo reflow al cargar o cambiar datos
-  const timer = setTimeout(() => {
-    Highcharts.charts.forEach(chart => {
-      if (chart) {
-        chart.reflow();
-      }
-    });
-  }, 300);
-
-  return () => clearTimeout(timer);
-}, [chartOptions, angleChartOptions, forceChartOptions, servoForceChartOptions, velocityChartOptions]);
-
-
-
-
 
   const handleImageLoad = useCallback((index) => {
     setImageLoadStatus((prev) =>
@@ -1241,6 +1200,12 @@ const fetchUserObservations = useCallback(async (email) => {
           <div className="w-full max-w-md flex justify-center">
             <div className="w-full bg-cardBg backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-300 text-center mb-6">Iniciar Sesión</h2>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-900/50 text-red-300 rounded-lg text-sm sm:text-base">
+                  {error}
+                </div>
+              )}
       
               <form onSubmit={handleSubmit} className="space-y-4">
                 <input
@@ -1452,7 +1417,7 @@ const fetchUserObservations = useCallback(async (email) => {
                         </div>
                       ) : (
                         <div className="chart-container p-4 bg-darkBg rounded-lg shadow-inner w-[660px]">
-                          <HighchartsWrapper options={chartOptions} />
+                          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
                         </div>
                       )}
                       <div className="mt-6 w-full">
@@ -1474,6 +1439,7 @@ const fetchUserObservations = useCallback(async (email) => {
                   ) : (
                     <p className="text-gray-400 text-center text-sm sm:text-base">Selecciona un paciente para ver su progreso.</p>
                   )}
+                  {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                 </div>
               </div>
             ) : (
@@ -1568,6 +1534,7 @@ const fetchUserObservations = useCallback(async (email) => {
                         <p className="text-gray-300 whitespace-pre-wrap text-sm">No hay observaciones disponibles.</p>
                       )}
                     </div>
+                    {error && <p className="text-center text-red-500 mt-4 text-sm">{error}</p>}
                   </div>
                 </div>
               </div>
@@ -1577,3 +1544,4 @@ const fetchUserObservations = useCallback(async (email) => {
       </main>
     </div>
   );
+}
