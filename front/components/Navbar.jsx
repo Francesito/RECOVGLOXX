@@ -1,4 +1,3 @@
-// components/Navbar.jsx
 'use client';
 
 import Link from 'next/link';
@@ -42,15 +41,22 @@ export default function Navbar({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sincronizar el estado del usuario con localStorage al montar y al actualizar
+  // Sincronizar el estado del usuario con localStorage y disparar evento personalizado
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser && !user) {
-      setUser(JSON.parse(storedUser)); // Sincronizar si hay usuario en localStorage pero no en estado
-    } else if (!storedUser && user) {
-      setUser(null); // Limpiar estado si no hay usuario en localStorage
-    }
-  }, [user, setUser]); // Dependencias: user y setUser
+    const handleStorageUpdate = () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && !user) {
+        setUser(JSON.parse(storedUser));
+      } else if (!storedUser && user) {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('custom-storage-update', handleStorageUpdate);
+    handleStorageUpdate(); // Ejecutar al montar para sincronizar inicialmente
+
+    return () => window.removeEventListener('custom-storage-update', handleStorageUpdate);
+  }, [user, setUser]);
 
   const handleLogout = useCallback(async () => {
     console.log('Navbar - handleLogout - Starting logout process');
@@ -58,15 +64,17 @@ export default function Navbar({
       await signOut(auth); // Cerrar sesión en Firebase
       console.log('Navbar - handleLogout - Sign out successful');
       localStorage.removeItem('user'); // Limpiar localStorage
+      window.dispatchEvent(new Event('custom-storage-update')); // Disparar evento personalizado
       setUser(null); // Limpiar estado del usuario
       if (typeof resetAllStates === 'function') {
         resetAllStates(); // Restablecer estados del componente principal
       }
       setMobileMenuOpen(false); // Cerrar menú móvil
-      router.replace('/'); // Redirigir al login (replace evita volver atrás)
+      router.replace('/'); // Redirigir al login
     } catch (err) {
       console.error('Navbar - handleLogout - Sign out error:', err.message);
       localStorage.removeItem('user');
+      window.dispatchEvent(new Event('custom-storage-update'));
       setUser(null);
       if (typeof resetAllStates === 'function') {
         resetAllStates();

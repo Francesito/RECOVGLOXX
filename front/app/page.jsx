@@ -369,7 +369,7 @@ export default function Home() {
     setTotalSessions(0);
     setProgressPercentage(0.0);
     setUserObservaciones('');
-    setLoading(true);
+    setLoading(false); // Asegurar que loading se establece en false tras el reset
   }, []);
 
   const fetchPatients = useCallback(async (physioId) => {
@@ -1142,6 +1142,7 @@ const fetchUserObservations = useCallback(async (email) => {
           console.error('checkAuthState - Error parsing user data:', error);
           localStorage.removeItem('user'); // Limpiar si hay error
           setUser(null);
+          window.dispatchEvent(new Event('custom-storage-update'));
         }
       } else {
         setUser(null); // Asegurar que no haya usuario si no hay datos en localStorage
@@ -1149,8 +1150,15 @@ const fetchUserObservations = useCallback(async (email) => {
       setLoading(false); // Termina la carga
     };
   
-    checkAuthState();
-  }, [fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]); // Dependencias necesarias
+    const handleStorageUpdate = () => {
+      checkAuthState();
+    };
+  
+    window.addEventListener('custom-storage-update', handleStorageUpdate);
+    checkAuthState(); // Ejecutar al montar
+  
+    return () => window.removeEventListener('custom-storage-update', handleStorageUpdate);
+  }, [fetchPatients, fetchNotifications, fetchUserProgress, fetchUserObservations]);
 
   useEffect(() => {
     if (user) {
